@@ -7,7 +7,9 @@
  * (face locked) wearing the garment in a fresh generated scene.
  *
  * Runs synchronously (Nano Banana via the photoshoot pipeline). Generation is
- * isolated so a failure here can never affect the clothing-swap path.
+ * isolated so a failure here can never affect the clothing-swap path. The same
+ * generation gate as /api/tryon (daily cap + cooldown + concurrency lock +
+ * kill switch) guards cost; it honours TRYON_RATE_LIMIT_DISABLED.
  */
 
 import { NextResponse } from 'next/server'
@@ -16,9 +18,18 @@ import { createClient, createServiceClient } from '@/lib/auth'
 import { getReferencePhotosByIds, fetchReferencePhotoAsBase64 } from '@/lib/reference-photos/service'
 import { saveUpload } from '@/lib/storage'
 import { runPhotoshoot, isPhotoshootSlotSuccess } from '@/lib/tryon/photoshoot-pipeline'
+import { checkGenerationGate, completeGeneration } from '@/lib/generation-limiter'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 300
+
+// Same master switch as the clothing-swap route. Limiter is OFF unless the env
+// is explicitly the string "false" (i.e. limits enabled) AND we're in prod or
+// the limiter is force-enabled.
+const RATE_LIMIT_DISABLED = process.env.TRYON_RATE_LIMIT_DISABLED !== 'false'
+const LIMITER_ACTIVE =
+  !RATE_LIMIT_DISABLED &&
+  (process.env.NODE_ENV === 'production' || process.env.TRYON_LIMITER_ENABLED === 'true')
 
 const bodySchema = z
   .object({
@@ -36,6 +47,11 @@ const bodySchema = z
   })
 
 export async function POST(request: Request) {
+  let userId: string | null = null
+  let gateRequestId: string | null = null
+  let genResult: 'success' | 'failed' = 'failed'
+  let variantCount = 3
+
   try {
     const supabase = await createClient()
     const {
@@ -44,6 +60,7 @@ export async function POST(request: Request) {
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
+    userId = user.id
 
     const body = await request.json().catch(() => null)
     const parsed = bodySchema.safeParse(body)
@@ -54,10 +71,32 @@ export async function POST(request: Request) {
       )
     }
     const input = parsed.data
+    variantCount = input.variantCount ?? 3
+
+    // ── Cost gate (daily cap + cooldown + one-at-a-time + kill switch) ──
+    if (LIMITER_ACTIVE) {
+      const ip =
+        request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
+        request.headers.get('x-real-ip') ||
+        'unknown'
+      const gate = checkGenerationGate(userId, ip)
+      if (!gate.allowed) {
+        return NextResponse.json(
+          {
+            error: gate.blockReason || 'Generation limit reached. Please try again later.',
+            code: 'GENERATION_LIMIT',
+            remainingToday: gate.remainingToday,
+          },
+          { status: 429, headers: { 'Retry-After': '60', 'Cache-Control': 'no-store' } },
+        )
+      }
+      gateRequestId = gate.requestId
+    }
+
     const service = createServiceClient()
 
     // ── Resolve the source person photo (base64) ──────────────────────
-    const photos = await getReferencePhotosByIds(service, user.id, [input.referenceImageId])
+    const photos = await getReferencePhotosByIds(service, userId, [input.referenceImageId])
     const personPhoto = photos[0]
     if (!personPhoto?.image_url) {
       return NextResponse.json({ error: 'Source photo not found' }, { status: 404 })
@@ -124,7 +163,7 @@ export async function POST(request: Request) {
           const clean = sel.outputBase64.replace(/^data:image\/[a-z+]+;base64,/, '')
           const stored = await saveUpload(
             clean,
-            `photoshoot/${user.id}/${Date.now()}-${idx + 1}.png`,
+            `photoshoot/${userId}/${Date.now()}-${idx + 1}.png`,
             'try-ons',
           )
           if (stored) imageUrl = stored
@@ -149,6 +188,7 @@ export async function POST(request: Request) {
     }
 
     outputs.sort((a, b) => a.variant - b.variant)
+    genResult = 'success'
     return NextResponse.json({ outputs, failures }, { headers: { 'Cache-Control': 'no-store' } })
   } catch (error) {
     console.error('[photoshoot] error:', error)
@@ -156,5 +196,15 @@ export async function POST(request: Request) {
       { error: error instanceof Error ? error.message : 'Internal server error' },
       { status: 500 },
     )
+  } finally {
+    // ALWAYS release the session lock / record cost when a gate was acquired,
+    // on every exit path (success, handled error, or thrown error).
+    if (gateRequestId && userId) {
+      try {
+        completeGeneration(userId, gateRequestId, genResult, variantCount)
+      } catch (e) {
+        console.warn('[photoshoot] completeGeneration cleanup failed:', e)
+      }
+    }
   }
 }
