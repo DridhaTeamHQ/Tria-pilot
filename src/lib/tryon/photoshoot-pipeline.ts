@@ -127,6 +127,11 @@ const FACE_RESTORE_ENABLED =
   process.env.PHOTOSHOOT_FACE_RESTORE === '1' ||
   process.env.PHOTOSHOOT_FACE_RESTORE === 'true'
 
+// The forensic facial-text technique helps Imagen, but Google's own Nano Banana
+// guidance is the opposite — long face-text DILUTES the image reference. So it's
+// OFF by default for our Nano Banana pipeline (enable to A/B test only).
+const FORENSIC_PROFILE_ENABLED = process.env.PHOTOSHOOT_FORENSIC_PROFILE === '1'
+
 function strip(b64: string): string {
   return b64.replace(/^data:image\/[a-z+]+;base64,/, '')
 }
@@ -365,7 +370,7 @@ export async function runPhotoshoot(input: PhotoshootInput): Promise<PhotoshootR
       .then((r) => (r.success ? strip(r.faceCropBase64) : null))
       .catch(() => null),
     analyzeGarment(garmentRaw).catch(() => null),
-    extractFacialProfile(selectedPerson),
+    FORENSIC_PROFILE_ENABLED ? extractFacialProfile(selectedPerson) : Promise.resolve(''),
   ])
   if (isDev && facialProfile) console.log(`🧬 [photoshoot] facial profile: ${facialProfile.slice(0, 120)}…`)
 
