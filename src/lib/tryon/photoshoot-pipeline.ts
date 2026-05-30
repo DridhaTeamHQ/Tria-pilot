@@ -74,6 +74,50 @@ async function pickBestFaceIndex(images: string[]): Promise<number> {
   }
 }
 
+/**
+ * FORENSIC FACIAL PROFILE (Google Veo / Imagen technique).
+ * GPT-4o extracts an objective, feature-by-feature description of THIS person's
+ * face (face shape, jaw, eyes, NOSE, lips, brows, beard, skin). Injecting it
+ * into the generation prompt anchors the generated face to the real person's
+ * specific features (esp. the nose) BEFORE the swap — so the swap has a
+ * near-correct target and drifts far less. Empty string on any failure.
+ */
+async function extractFacialProfile(image: string): Promise<string> {
+  try {
+    const openai = getOpenAI()
+    const resp = await openai.chat.completions.create(
+      {
+        model: 'gpt-4o-mini',
+        temperature: 0,
+        max_tokens: 230,
+        messages: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'text',
+                text: `Describe ONLY this person's face, objectively and specifically, as one compact paragraph for an exact identity match. Cover: face shape and jawline; cheekbones and forehead; eye shape, spacing and color; eyebrow shape and thickness; NOSE shape, width, bridge and tip; lip shape and fullness; facial hair (beard/moustache style + density) if any; hairline and hairstyle; skin tone/complexion; and any distinguishing marks (moles, dimples, scars). No clothing, no background, no opinions — only factual facial features.`,
+              },
+              {
+                type: 'image_url',
+                image_url: {
+                  url: image.startsWith('data:') ? image : `data:image/jpeg;base64,${image}`,
+                  detail: 'high' as const,
+                },
+              },
+            ],
+          },
+        ],
+      },
+      { timeout: 20_000 },
+    )
+    return (resp.choices?.[0]?.message?.content || '').trim()
+  } catch (e) {
+    if (isDev) console.warn(`[photoshoot] facial profile extraction failed: ${e instanceof Error ? e.message : e}`)
+    return ''
+  }
+}
+
 // Optional face-restore post-pass for a hard identity lock. OFF by default
 // (adds latency + a face-detect call). Activates when an InsightFace service
 // is configured (best quality) OR when explicitly enabled to use the Gemini
@@ -312,8 +356,8 @@ export async function runPhotoshoot(input: PhotoshootInput): Promise<PhotoshootR
   const aspectRatio = input.aspectRatio || '4:5'
   const variantCount = Math.max(1, Math.min(4, input.variantCount ?? 3))
 
-  // ── Prep (parallel): clean garment, face crop, garment description ──
-  const [cleanedGarment, faceCrop, garmentIntel] = await Promise.all([
+  // ── Prep (parallel): clean garment, face crop, garment desc, face profile ──
+  const [cleanedGarment, faceCrop, garmentIntel, facialProfile] = await Promise.all([
     preprocessGarmentImage(garmentRaw, { fast: true, model: 'flash', sessionId: `photoshoot-${Date.now()}` })
       .then((p) => strip(p.processedImage))
       .catch(() => garmentRaw),
@@ -321,7 +365,9 @@ export async function runPhotoshoot(input: PhotoshootInput): Promise<PhotoshootR
       .then((r) => (r.success ? strip(r.faceCropBase64) : null))
       .catch(() => null),
     analyzeGarment(garmentRaw).catch(() => null),
+    extractFacialProfile(selectedPerson),
   ])
+  if (isDev && facialProfile) console.log(`🧬 [photoshoot] facial profile: ${facialProfile.slice(0, 120)}…`)
 
   const garmentDesc =
     garmentIntel?.description ||
@@ -340,6 +386,9 @@ export async function runPhotoshoot(input: PhotoshootInput): Promise<PhotoshootR
       // Identity first — short and direct. The reference images do the heavy
       // lifting; the prompt just reminds the model to keep that person + frame close.
       `Photorealistic fashion photoshoot photo of the SAME person from the reference photos, wearing the garment. Maintain the exact same facial features as the reference photos — same eye shape, nose, jawline contour, skin tone and texture; do not change their face.`,
+      // Forensic facial description (Google Veo/Imagen technique) — anchors the
+      // exact features (esp. the nose) so the generated face matches before swap.
+      facialProfile ? `THE PERSON'S EXACT FACE (reproduce precisely): ${facialProfile}` : '',
       sceneBlock,
       garmentDesc ? `GARMENT: ${garmentDesc}.` : '',
       `POSE: ${POSE_VARIATIONS[variant % POSE_VARIATIONS.length]}. Keep the face clearly visible and facing roughly toward the camera.`,
