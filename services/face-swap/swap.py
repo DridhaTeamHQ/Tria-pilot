@@ -457,7 +457,7 @@ class FaceDetector:
 
         return scores_list, bboxes_list, kpss_list
 
-    def detect(self, img: np.ndarray, threshold: float = 0.5, max_num: int = 0):
+    def detect(self, img: np.ndarray, threshold: float = 0.3, max_num: int = 0):
         h, w = img.shape[:2]
         input_size = self.input_size
         im_ratio = float(h) / float(w)
