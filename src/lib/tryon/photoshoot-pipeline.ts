@@ -381,9 +381,13 @@ export async function runPhotoshoot(input: PhotoshootInput): Promise<PhotoshootR
       .join(' ')
       .trim()
 
+  // Keep the scene text LEAN. Long verbose SCENE+LIGHTING+CAMERA paragraphs
+  // dominate the prompt and dilute the face reference in Nano Banana — which is
+  // what made the face drift. Use just the scene line + a short light note;
+  // framing is enforced separately below.
   const sceneBlock = preset
-    ? `SCENE: ${preset.scene}\nLIGHTING: ${preset.lighting}\nCAMERA: ${preset.camera}`
-    : `SCENE: ${input.customScene}`
+    ? `Scene: ${preset.scene} Soft, even, flattering light on the face.`
+    : `Scene: ${input.customScene}`
   const negative = preset?.negativeBias || 'no plastic skin, no AI smoothing, no distorted anatomy, no oversaturation'
 
   const buildPrompt = (variant: number): string =>
