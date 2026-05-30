@@ -394,7 +394,7 @@ export async function runPhotoshoot(input: PhotoshootInput): Promise<PhotoshootR
     [
       // Identity first — short and direct. The reference images do the heavy
       // lifting; the prompt just reminds the model to keep that person + frame close.
-      `Photorealistic fashion photoshoot photo of the SAME person from the reference photos, wearing the garment. Maintain the exact same facial features as the reference photos — same eye shape, nose, jawline contour, skin tone and texture; do not change their face.`,
+      `Photorealistic fashion photoshoot photo of the SAME person from the reference image, wearing the garment. 100% the SAME face — identical facial structure, same face shape, jawline, eye shape, nose, lips, skin tone and texture as the reference. Do not change, beautify, or swap the face.`,
       // Forensic facial description (Google Veo/Imagen technique) — anchors the
       // exact features (esp. the nose) so the generated face matches before swap.
       facialProfile ? `THE PERSON'S EXACT FACE (reproduce precisely): ${facialProfile}` : '',
@@ -405,7 +405,7 @@ export async function runPhotoshoot(input: PhotoshootInput): Promise<PhotoshootR
       // FRAMING last so it OVERRIDES any "full-body" wording in the preset camera:
       // a large, close face holds identity; a tiny full-body face drifts.
       `IMPORTANT FRAMING: regardless of the camera note above, shoot a MEDIUM portrait from roughly the waist or chest up so the face is LARGE and clearly visible — do not produce a small full-body figure.`,
-      `Make it look like a real photograph (natural skin texture, soft even light on the face, real lighting). Avoid: ${negative}.`,
+      `Make it look like a real photograph (natural skin texture, soft even light on the face, real lighting). Avoid: ${negative}, no face change, no different face, no altered facial features.`,
       // FACE LOCK appended last (strongest recency) on every generation.
       FACE_LOCK_BLOCK,
     ]
@@ -493,9 +493,36 @@ export async function runPhotoshoot(input: PhotoshootInput): Promise<PhotoshootR
     }
   }
 
-  const selections = await Promise.all(
-    Array.from({ length: variantCount }, (_, i) => runVariant(i)),
+  // BEST-OF-N AUTO-CURATION (research-universal "batch and curate"):
+  // when InsightFace gives us a per-image identity-similarity score, generate a
+  // few EXTRA variants, then keep the highest-matching ones. Beats the 10-20%
+  // drift everyone hits, automatically. Without the swap (no score) we just
+  // generate the target count.
+  const curate = FACE_RESTORE_ENABLED && variantCount >= 1
+  const poolCount = curate ? Math.min(variantCount + 2, 6) : variantCount
+
+  const allSlots = await Promise.all(
+    Array.from({ length: poolCount }, (_, i) => runVariant(i)),
   )
+
+  let selections: Array<PhotoshootSlot | PhotoshootFailure>
+  if (curate) {
+    const successes = allSlots.filter(isPhotoshootSlotSuccess)
+    const failures = allSlots.filter((s): s is PhotoshootFailure => !isPhotoshootSlotSuccess(s))
+    // Rank by face similarity (highest first); slots without a score sink last.
+    successes.sort((a, b) => (b.faceSimilarity ?? -1) - (a.faceSimilarity ?? -1))
+    const kept = successes.slice(0, variantCount)
+    // Re-index so the UI shows clean "Look 1/2/3".
+    kept.forEach((s, i) => { s.variant = i })
+    if (isDev) {
+      console.log(`🏆 [photoshoot] curated ${kept.length}/${successes.length} by similarity: ${successes.map((s) => (s.faceSimilarity ?? 0).toFixed(2)).join(', ')}`)
+    }
+    selections = kept.length ? kept : allSlots.slice(0, variantCount)
+    // If everything failed, still surface the failures so the caller sees why.
+    if (!kept.length && failures.length) selections = failures.slice(0, variantCount)
+  } else {
+    selections = allSlots.slice(0, variantCount)
+  }
 
   return {
     cleanedGarmentBase64: cleanedGarment,
