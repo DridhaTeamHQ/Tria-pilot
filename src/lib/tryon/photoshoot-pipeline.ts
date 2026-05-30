@@ -49,7 +49,7 @@ async function pickBestFaceIndex(images: string[]): Promise<number> {
             content: [
               {
                 type: 'text',
-                text: `These are reference photos of the SAME person. Pick the SINGLE best one to use as a face-identity reference for an AI face swap: the clearest, most front-facing, well-lit, unobstructed face — no sunglasses, no heavy head turn, no motion blur, face large in the frame. Reply with ONLY the 0-based index number (e.g. "0").`,
+                text: `These are photos of the SAME person. Pick the SINGLE best one to use as the face reference for AI generation + face swap. STRONGLY prefer a photo where the person looks STRAIGHT AT THE CAMERA — a front-facing, level head (NOT turned to the side, NOT a profile, NOT tilted, NOT looking away), with BOTH eyes clearly visible, no sunglasses, even lighting, sharp focus, and the face large in the frame. A straight, front-facing face matters far more than the pose, background, or outfit — a turned or angled face is a bad choice even if the photo is prettier. Reply with ONLY the 0-based index number (e.g. "0").`,
               },
               ...images.map((b64) => ({
                 type: 'image_url' as const,
