@@ -62,6 +62,14 @@ ENHANCE_BLEND = float(os.getenv("FACE_SWAP_ENHANCE_BLEND", "0.85"))
 SHARPEN_STRENGTH = float(os.getenv("FACE_SWAP_SHARPEN", "0.4"))
 CODEFORMER_MODEL = "codeformer.onnx"
 
+# Occlusion masking (XSeg) — keeps the swap from pasting over hair/hands/objects
+# crossing the face. OFF by default (clean front-facing faces rarely need it,
+# and a wrong mask could reduce the swap), so it can never change the working
+# swap unless you opt in with FACE_SWAP_OCCLUSION=1. A missing or implausible
+# mask is ignored and the normal swap is used.
+OCCLUSION_ENABLED = os.getenv("FACE_SWAP_OCCLUSION", "0") in ("1", "true", "True")
+OCCLUDER_MODEL = "xseg_1.onnx"
+
 ARCFACE_DST = np.array(
     [
         [38.2946, 51.6963],
@@ -566,6 +574,12 @@ class FaceSwapperModel:
         img_fake = pred.transpose((0, 2, 3, 1))[0]
         bgr_fake = np.clip(255 * img_fake, 0, 255).astype(np.uint8)[:, :, ::-1]
         face_mask = build_soft_face_mask(self.input_size[0])
+        # Optional occlusion masking — exclude hair/hands/objects over the face.
+        # Guarded + off by default, so it can never break the working swap.
+        if OCCLUSION_ENABLED:
+            occ = occlusion_mask(aligned, self.input_size[0])
+            if occ is not None:
+                face_mask = (face_mask * occ).astype(np.float32)
         cleaned_fake = smooth_swap_artifacts(bgr_fake, face_mask)
         freq_blended = frequency_split_blend(cleaned_fake, aligned, face_mask)
         de_spotted = suppress_dark_spot_artifacts(freq_blended, aligned, face_mask)
@@ -632,6 +646,64 @@ class CodeFormerEnhancer:
         return restored
 
 
+# ─────────────────────────── OCCLUSION (XSeg) ───────────────────────────
+_occluder_session = None
+
+
+def _load_occluder() -> None:
+    global _occluder_session
+    if not OCCLUSION_ENABLED:
+        return
+    candidates = [
+        MODEL_DIR / "models" / OCCLUDER_MODEL,
+        MODEL_DIR / OCCLUDER_MODEL,
+        Path(__file__).parent / "models" / OCCLUDER_MODEL,
+    ]
+    path = next((str(c) for c in candidates if c.exists()), None)
+    if not path:
+        logger.info("Occluder model not found — occlusion masking disabled")
+        return
+    try:
+        _occluder_session = ort.InferenceSession(path, providers=["CPUExecutionProvider"])
+        logger.info(f"Occluder loaded ({path})")
+    except Exception as e:
+        logger.warning(f"Occluder load failed, occlusion off: {e}")
+
+
+def occlusion_mask(face_bgr: np.ndarray, out_size: int):
+    """Return a [0,1] mask (out_size x out_size) of the un-occluded face region,
+    or None if unavailable/implausible (caller then uses the normal mask)."""
+    if _occluder_session is None:
+        return None
+    try:
+        sess = _occluder_session
+        inp = sess.get_inputs()[0]
+        m = 256
+        face = cv2.resize(face_bgr, (m, m)).astype(np.float32) / 255.0
+        rgb = face[:, :, ::-1]  # BGR -> RGB
+        if len(inp.shape) == 4 and inp.shape[1] == 3:
+            blob = np.transpose(rgb, (2, 0, 1))[None].astype(np.float32)  # NCHW
+        else:
+            blob = rgb[None].astype(np.float32)  # NHWC
+        out = np.squeeze(sess.run(None, {inp.name: blob})[0])
+        if out.ndim == 3:
+            out = out[0] if out.shape[0] == 1 else (out[..., 0] if out.shape[-1] == 1 else out.reshape(m, m))
+        mask = np.clip(out.astype(np.float32), 0.0, 1.0)
+        if mask.shape[:2] != (m, m):
+            mask = cv2.resize(mask, (m, m))
+        mask = cv2.resize(mask, (out_size, out_size))
+        mask = cv2.GaussianBlur(mask, (0, 0), max(out_size / 64.0, 1.0))
+        coverage = float((mask > 0.5).mean())
+        # Sanity guard: implausible masks are ignored so a wrong model can never
+        # wipe out the swapped face.
+        if coverage < 0.25 or coverage > 0.999:
+            return None
+        return mask
+    except Exception as e:
+        logger.warning(f"Occlusion mask skipped: {e}")
+        return None
+
+
 class FaceSwapper:
     def __init__(self):
         _download_buffalo_l()
@@ -671,6 +743,7 @@ class FaceSwapper:
             else:
                 logger.info("CodeFormer model not found — running without face enhancement")
 
+        _load_occluder()
         logger.info("FaceSwapper ready (official SCRFD + inswapper ONNX)")
 
     def _embed_source(self, img: np.ndarray, face_index: int = 0):

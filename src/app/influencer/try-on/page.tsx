@@ -996,6 +996,12 @@ function TryOnPageContent() {
               <div className="rounded-[24px] border-[3px] border-black bg-white p-5 shadow-[5px_5px_0_0_#000]">
                 <div className="text-[10px] font-black uppercase tracking-[0.2em] text-black/50">Photoshoot Scene</div>
                 <p className="mt-1 text-xs font-semibold text-black/60">We keep your face and put the product on you in a fresh AI photoshoot scene.</p>
+                <div className="mt-2 flex items-start gap-2 rounded-xl border-2 border-black bg-[#E8F5E9] px-3 py-2">
+                  <Check className="mt-0.5 h-3.5 w-3.5 flex-shrink-0" strokeWidth={3} />
+                  <p className="text-[11px] font-semibold leading-snug text-black/75">
+                    For the best face match, use <span className="font-black">clear, evenly-lit, front-facing</span> photos — no sunglasses, no harsh shadows, face large in the frame.
+                  </p>
+                </div>
                 <div className="mt-3 grid grid-cols-2 gap-2">
                   {PHOTOSHOOT_PRESET_CARDS.map((preset) => {
                     const active = selectedPresetId === preset.id
@@ -1029,7 +1035,7 @@ function TryOnPageContent() {
             )}
             <div className="rounded-[24px] border-[3px] border-black bg-white p-5 shadow-[5px_5px_0_0_#000]">
               <div className="flex flex-wrap items-center justify-between gap-3">
-                <div className="text-[10px] font-black uppercase tracking-[0.2em] text-black/50">{genMode === 'photoshoot' ? `Your Face — pick up to 3 (${selectedPhotos.length}/3, more angles = better)` : `Photos (${selectedPhotos.length}/3)`}</div>
+                <div className="text-[10px] font-black uppercase tracking-[0.2em] text-black/50">{genMode === 'photoshoot' ? `Your Face — clear, front-facing photos (${selectedPhotos.length}/3)` : `Photos (${selectedPhotos.length}/3)`}</div>
                 <button type="button" onClick={() => setLibraryModalOpen(true)} className="rounded-full border-[2px] border-black bg-[#FFD93D] px-3 py-1 text-[10px] font-black uppercase shadow-[2px_2px_0_0_#000]">Edit Sources</button>
               </div>
               <p className="mt-2 text-xs font-semibold text-black/60">{selectionMode === 'manual' ? 'Using your manual selection.' : 'AI automatically picked the best photos.'}</p>

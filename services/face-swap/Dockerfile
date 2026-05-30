@@ -32,6 +32,12 @@ RUN curl -fSL "$CODEFORMER_URL" -o /app/.insightface/models/codeformer.onnx \
     && test -s /app/.insightface/models/codeformer.onnx \
     || (echo "WARN: codeformer.onnx download failed — enhancement disabled" && rm -f /app/.insightface/models/codeformer.onnx)
 
+# XSeg occluder model (optional — only used when FACE_SWAP_OCCLUSION=1). Non-fatal.
+ARG OCCLUDER_URL="https://github.com/facefusion/facefusion-assets/releases/download/models-3.0.0/xseg_1.onnx"
+RUN curl -fSL "$OCCLUDER_URL" -o /app/.insightface/models/xseg_1.onnx \
+    && test -s /app/.insightface/models/xseg_1.onnx \
+    || (echo "WARN: xseg_1.onnx download failed — occlusion masking unavailable" && rm -f /app/.insightface/models/xseg_1.onnx)
+
 COPY . .
 
 ENV PORT=8000
