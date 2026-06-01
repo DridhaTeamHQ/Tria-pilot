@@ -257,12 +257,13 @@ async function generateOneVariant(opts: {
   prompt: string
   aspectRatio: string
 }): Promise<string> {
-  // IMAGE ORDER MATTERS in Nano Banana — the first image gets the strongest
-  // conditioning weight. We put the FACE CROP first (the most direct identity
-  // signal — just the face, no body/background distraction), then the wider
-  // person reference for body proportions and skin tone, then the garment.
-  // This is the opposite of the previous order (wide first, crop second) which
-  // let body/background tokens drown out the face features.
+  // IMAGE ORDER + SANDWICH:
+  // Nano Banana attends most strongly to images at the START and END of the
+  // content list. Power users report noticeably better identity transfer when
+  // the same identity reference is sent at BOTH positions ("sandwich").
+  // We sandwich the face crop: first image (strongest weight), then wider
+  // person reference (body proportions), then garment, then face crop AGAIN
+  // right before the final prompt (recency lock).
   const contents: ContentListUnion = []
   if (opts.faceCropB64) {
     contents.push(
@@ -279,8 +280,16 @@ async function generateOneVariant(opts: {
   contents.push(
     { inlineData: { data: opts.garmentB64, mimeType: 'image/jpeg' } } as any,
     'The garment to wear: copy its exact color, pattern, texture, and cut. Ignore any face/model in this garment image.',
-    opts.prompt,
   )
+  // SANDWICH: face crop again right before the prompt — recency reinforcement
+  // for the identity signal. Removes "almost the right person" drift.
+  if (opts.faceCropB64) {
+    contents.push(
+      { inlineData: { data: opts.faceCropB64, mimeType: 'image/jpeg' } } as any,
+      'FINAL IDENTITY CHECK — this is the same face as the very first image. The output face must match this person, not a similar-looking model.',
+    )
+  }
+  contents.push(opts.prompt)
 
   const imageConfig: ImageConfig = {
     aspectRatio: opts.aspectRatio as any,
@@ -291,9 +300,10 @@ async function generateOneVariant(opts: {
     responseModalities: ['TEXT', 'IMAGE'],
     systemInstruction: FACE_LOCK_SYSTEM_INSTRUCTION,
     imageConfig,
-    // 0.4 matched the earlier good results; identity comes from image ordering
-    // + close framing, not from temperature.
-    temperature: 0.4,
+    // 0.3 — Imagen guidance is that temperatures above 0.3 introduce facial
+    // feature variability. Was 0.4; identity comes from image ordering + close
+    // framing + low temperature.
+    temperature: 0.3,
     safetySettings: [
       { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_ONLY_HIGH' },
       { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_ONLY_HIGH' },
@@ -376,6 +386,20 @@ export async function runPhotoshoot(input: PhotoshootInput): Promise<PhotoshootR
     FORENSIC_PROFILE_ENABLED ? extractFacialProfile(selectedPerson) : Promise.resolve(''),
   ])
   if (isDev && facialProfile) console.log(`🧬 [photoshoot] facial profile: ${facialProfile.slice(0, 120)}…`)
+
+  // ── PRE-FLIGHT: face crop quality check ───────────────────────────────
+  // If the face crop is missing or too small, InsightFace's face detector
+  // will likely fail to find a face on the generated output, so the swap
+  // silently skips and the user sees raw Gemini face drift. Surface this
+  // loudly so the cause is obvious in the logs, not invisible.
+  if (!faceCrop) {
+    console.warn(`⚠️ [photoshoot] NO face crop could be extracted from the reference photo — Gemini will rely solely on the wide reference and InsightFace may not lock identity. Suggest using a clearer front-facing source photo.`)
+  } else if (faceCrop.length < 20_000) {
+    // Base64 length < 20KB → likely sub-200px crop. Won't blow up, but warn.
+    console.warn(`⚠️ [photoshoot] face crop is very small (~${Math.round(faceCrop.length / 1024)}KB base64) — InsightFace identity transfer may be weaker than ideal.`)
+  } else if (isDev) {
+    console.log(`✅ [photoshoot] face crop ready (${Math.round(faceCrop.length / 1024)}KB base64)`)
+  }
 
   const garmentDesc =
     garmentIntel?.description ||
@@ -508,9 +532,57 @@ export async function runPhotoshoot(input: PhotoshootInput): Promise<PhotoshootR
   const curate = FACE_RESTORE_ENABLED && variantCount >= 1
   const poolCount = curate ? Math.min(variantCount + 3, 7) : variantCount
 
-  const allSlots = await Promise.all(
+  let allSlots = await Promise.all(
     Array.from({ length: poolCount }, (_, i) => runVariant(i)),
   )
+
+  // AUTO RE-ROLL on low similarity. When InsightFace IS running but every
+  // variant came back with poor identity match (best < 0.5), keeping the
+  // least-bad still ships a face that drifted. Instead, generate 2 extra
+  // variants with a stronger identity-focused prompt and merge them in
+  // before curating. Only fires when face restore is enabled and we have
+  // similarity scores to judge by — caps the extra cost at 2 variants and
+  // ~25-30s additional wall time, well within the 300s function budget.
+  if (curate) {
+    const scoredSuccesses = allSlots
+      .filter(isPhotoshootSlotSuccess)
+      .map((s) => s.faceSimilarity)
+      .filter((v): v is number => typeof v === 'number')
+    const bestSoFar = scoredSuccesses.length ? Math.max(...scoredSuccesses) : null
+    if (bestSoFar !== null && bestSoFar < 0.5) {
+      console.warn(`🔁 [photoshoot] best similarity ${bestSoFar.toFixed(2)} < 0.5 — auto re-rolling 2 extra variants with stronger identity prompt`)
+      // Override buildPrompt for re-rolls by wrapping the variant runner.
+      const reRollVariant = async (variant: number): Promise<PhotoshootSlot | PhotoshootFailure> => {
+        const slotStart = Date.now()
+        // Pre-pend a maximum-strength identity directive to the regular prompt.
+        const basePrompt = buildPrompt(variant)
+        const strongerPrompt =
+          `MAXIMUM IDENTITY LOCK — the face/head in the output MUST be the exact person from the reference images. Do NOT generate a "similar looking" or "model-style" face. The previous attempts drifted; this attempt must match feature-for-feature: same nose width and bridge, same eye spacing, same jawline curvature, same lip shape, same hairline, same facial hair. Reproduce the real person, not an idealized version.\n\n` +
+          basePrompt
+        try {
+          let outputBase64 = await generateOneVariant({
+            personImages: refImages,
+            faceCropB64: faceCrop,
+            garmentB64: cleanedGarment,
+            prompt: strongerPrompt,
+            aspectRatio,
+          })
+          const restored = await maybeRestoreFace(outputBase64)
+          outputBase64 = restored.image
+          if (isDev) console.log(`✅ [photoshoot] RE-ROLL variant ${variant + 1} done in ${Date.now() - slotStart}ms (sim: ${restored.similarity?.toFixed(2) ?? 'n/a'})`)
+          return { variant, presetId, prompt: strongerPrompt, outputBase64, restoredVia: restored.method, faceSimilarity: restored.similarity, durationMs: Date.now() - slotStart }
+        } catch (err) {
+          const msg = err instanceof Error ? err.message : String(err)
+          return { variant, presetId, prompt: strongerPrompt, error: msg.slice(0, 400), durationMs: Date.now() - slotStart }
+        }
+      }
+      const reRolls = await Promise.all([
+        reRollVariant(poolCount),
+        reRollVariant(poolCount + 1),
+      ])
+      allSlots = [...allSlots, ...reRolls]
+    }
+  }
 
   let selections: Array<PhotoshootSlot | PhotoshootFailure>
   if (curate) {
