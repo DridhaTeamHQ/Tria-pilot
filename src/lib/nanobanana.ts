@@ -453,6 +453,64 @@ export interface DirectTryOnOptions {
   engineOverride?: 'flux' | 'gemini'
 }
 
+function buildGeminiSwapScope(
+  intel: import('@/lib/tryon/garment-intel').GarmentIntelligence | null | undefined,
+): {
+  image2Caption: string
+  taskLine: string
+  replacementBlock: string
+} {
+  switch (intel?.coverage) {
+    case 'upper_only':
+      return {
+        image2Caption: 'Image 2: the target upper-body garment. Replace only the upper-body garment on the person with this item exactly as shown — same color, pattern, texture, fit, and silhouette. Keep the original pants, shoes, and lower-body styling from Image 1 unchanged.',
+        taskLine: 'TASK: Replace only the upper-body garment on the person from Image 1 with the garment from Image 2.',
+        replacementBlock: `GARMENT REPLACEMENT (UPPER-BODY ONLY):
+- Change ONLY the upper-body garment region
+- Keep the original pants, jeans, shorts, skirt, shoes, socks, accessories, and lower-body styling from Image 1
+- Do NOT import companion bottom wear from the product/model photo
+- The output must still look like the same real person in the same original outfit, except wearing the new upper-body garment`,
+      }
+    case 'lower_only':
+      return {
+        image2Caption: 'Image 2: the target lower-body garment. Replace only the lower-body garment on the person with this item exactly as shown — same color, pattern, texture, fit, and silhouette. Keep the original top, jacket layers, and upper-body styling from Image 1 unchanged.',
+        taskLine: 'TASK: Replace only the lower-body garment on the person from Image 1 with the garment from Image 2.',
+        replacementBlock: `GARMENT REPLACEMENT (LOWER-BODY ONLY):
+- Change ONLY the lower-body garment region
+- Keep the original shirt, t-shirt, jacket, accessories, hair, and upper-body styling from Image 1
+- Do NOT import companion top wear from the product/model photo
+- The output must still look like the same real person in the same original outfit, except wearing the new lower-body garment`,
+      }
+    case 'layered':
+      return {
+        image2Caption: 'Image 2: the target outer-layer garment. Add or replace only this outer layer exactly as shown — same color, pattern, texture, fit, and silhouette. Keep the original base outfit and non-target clothing from Image 1 unchanged.',
+        taskLine: 'TASK: Apply only the target outer-layer garment from Image 2 onto the person from Image 1.',
+        replacementBlock: `GARMENT REPLACEMENT (LAYERED ONLY):
+- Change ONLY the sold outer layer from Image 2
+- Keep the original base top, lower-body clothing, shoes, and non-target styling from Image 1 unless the product itself clearly includes them
+- Do NOT restyle the whole outfit into the product model's full look`,
+      }
+    case 'full_body':
+      return {
+        image2Caption: 'Image 2: the target full-body garment. Replace only the clothing regions covered by this garment exactly as shown — same color, pattern, texture, fit, and silhouette — while preserving the real person, face, pose, and scene.',
+        taskLine: 'TASK: Replace only the clothing regions covered by the full-body garment from Image 2 on the person from Image 1.',
+        replacementBlock: `GARMENT REPLACEMENT (FULL-BODY GARMENT):
+- Replace only the garment-covered clothing regions with the garment from Image 2
+- Preserve the exact person, face, hands, pose, framing, background, and accessories unless the product itself clearly replaces them
+- Do NOT beautify or recast the person into a different model`,
+      }
+    default:
+      return {
+        image2Caption: 'Image 2: the target garment. Replace only the matching garment region on the person with this item exactly as shown — same color, pattern, texture, fit, and silhouette. Preserve all non-target clothing from Image 1.',
+        taskLine: 'TASK: Replace only the garment region represented by Image 2 on the person from Image 1.',
+        replacementBlock: `GARMENT REPLACEMENT (TARGET REGION ONLY):
+- Change only the garment region represented by Image 2
+- Preserve all non-target clothing and styling from Image 1
+- Do NOT restyle the whole outfit or copy companion pieces from the product photo`,
+      }
+  }
+}
+
 /**
  * Thin transport layer for the Nano Banana Pro pipeline.
  *
@@ -529,6 +587,7 @@ export async function generateTryOnDirect(options: DirectTryOnOptions): Promise<
     'gemini-3-pro-image-preview'
 
   const isDev = process.env.VERCEL_ENV ? process.env.VERCEL_ENV !== 'production' : process.env.NODE_ENV !== 'production'
+  const swapScope = buildGeminiSwapScope(options.garmentIntel ?? null)
 
   // Image order: person → garment → face crop (if available) → prompt
   // Image-2 caption is coverage-aware so Gemini understands what kind
@@ -538,7 +597,7 @@ export async function generateTryOnDirect(options: DirectTryOnOptions): Promise<
     { inlineData: { data: cleanPerson, mimeType: 'image/jpeg' } } as any,
     'Image 1: the person. Their pose, face, body, hair, and background must remain identical in the output. Only the clothing changes.',
     { inlineData: { data: cleanGarment, mimeType: 'image/jpeg' } } as any,
-    'Image 2: the target garment. Replace ALL clothing on the person with this garment exactly as shown — same color, pattern, texture, fit, and silhouette.',
+    swapScope.image2Caption,
   ]
 
   // Add face crop if provided (Image 3 — definitive identity reference)
@@ -610,7 +669,7 @@ export async function generateTryOnDirect(options: DirectTryOnOptions): Promise<
     responseModalities: ['TEXT', 'IMAGE'],
     systemInstruction: `You are a photorealistic virtual try-on editor. Output ONLY an edited image — no text.
 
-TASK: Replace ALL clothing on the person from Image 1 with the garment from Image 2.
+${swapScope.taskLine}
 
 IDENTITY (NON-NEGOTIABLE):
 - The output MUST show the EXACT SAME PERSON from Image 1
@@ -619,11 +678,7 @@ IDENTITY (NON-NEGOTIABLE):
 - Do NOT generate a different person or alter any facial features
 - Do NOT retouch the face, smooth skin, change expression, alter beard or moustache shape, modify hairstyle, or add/remove earrings, glasses, or jewelry
 
-GARMENT REPLACEMENT (STRIP-AND-REPLACE):
-- FIRST: Mentally STRIP all existing clothing from the person
-- THEN: Dress them ONLY in the garment from Image 2
-- The output must show ONLY the garment from Image 2 — NO traces of the original clothing
-- Do NOT blend, layer, or mix original clothing with the new garment
+${swapScope.replacementBlock}
 - PIXEL-PERFECT match: same color, pattern, texture, collar, sleeves, hem, fit, silhouette, and fabric as Image 2
 - If Image 2 shows a model, IGNORE their face/body — copy ONLY the garment
 - Any logo, chest emblem, monogram, stitched icon, wordmark, or embroidery on the garment is a locked detail — copy the exact symbol, color, stitch feel, size, and placement from Image 2
@@ -642,6 +697,7 @@ FORBIDDEN HALLUCINATIONS:
 - Do NOT replace or reinterpret any logo, embroidery, brand mark, text, crest, or small chest graphic from Image 2
 - Do NOT change the background, pose, framing, or zoom level — only the clothing changes
 - Do NOT invent props, accessories, beauty edits, new layers, or styling details that are not already present in Image 1
+- Do NOT copy the product model's companion garments or full styling onto the person when the sold product covers only one region
 - Preserve both arms and both hands exactly from Image 1. Do NOT place a hand or forearm across the chest, stomach, or garment unless it is already in that exact position in Image 1
 - Reject impossible anatomy: no floating hands, extra arms, duplicated fingers, merged wrists, or limbs fused into the garment
 

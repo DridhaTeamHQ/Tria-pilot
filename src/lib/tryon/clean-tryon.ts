@@ -270,6 +270,23 @@ function getExpectedFitDescription(
     .join('; ')
 }
 
+function buildSwapRegionLock(
+  intel: import('@/lib/tryon/garment-intel').GarmentIntelligence | null | undefined,
+): string {
+  switch (intel?.coverage) {
+    case 'upper_only':
+      return 'UPPER-BODY SWAP ONLY: replace only the sold upper-body garment. Keep the person\'s original pants, jeans, shorts, skirt, belt, shoes, socks, watch, bracelets, and leg silhouette exactly as they are in image 1. Do not import bottom-wear styling from the product photo.'
+    case 'lower_only':
+      return 'LOWER-BODY SWAP ONLY: replace only the sold lower-body garment. Keep the person\'s original top, jacket, shirt layers, hairstyle, face, arms, and upper-body silhouette exactly as they are in image 1. Do not import top styling from the product photo.'
+    case 'layered':
+      return 'LAYERED SWAP ONLY: apply only the sold outer layer from image 2. Keep the base inner clothing and the lower-body outfit from image 1 unless the product itself clearly includes additional layers.'
+    case 'full_body':
+      return 'FULL-OUTFIT REGION LOCK: change only the clothing regions actually covered by the sold full-body garment. Preserve the real person, face, hands, pose, accessories, framing, and scene exactly.'
+    default:
+      return 'TARGET-GARMENT-ONLY SWAP: replace only the garment region represented by image 2. Preserve all non-target clothing and styling from image 1.'
+  }
+}
+
 /**
  * Run the full clean pipeline. Throws only on catastrophic failure
  * (no garment, no photos, no OpenAI key). Individual slot failures
@@ -404,7 +421,7 @@ export async function runCleanTryOn(input: CleanTryOnInput): Promise<CleanTryOnR
       durationMs: 0,
       selections: fallbackPhotos.map((p) => ({
         photoId: p.id,
-        prompt: `Change the clothing on the person in image 1 to the garment shown in image 2 — ${desc}. Keep the person's face, hair, skin tone, body, pose, framing, lighting and background exactly the same as image 1. Only the clothing changes. Match the garment's exact color, pattern, material, texture, and construction details from image 2 with no reinterpretation. Photorealistic.`,
+        prompt: `Edit image 1 by changing only the target garment region to match the garment shown in image 2 — ${desc}. Preserve the person's face, hair, skin tone, body, pose, framing, lighting, background, and all non-target clothing exactly as in image 1. Match the garment's exact color, pattern, material, texture, and construction details from image 2 with no reinterpretation. Photorealistic.`,
         reasoning: 'Rules-based fallback — orchestrator unavailable',
       })),
     }
@@ -530,6 +547,7 @@ export async function runCleanTryOn(input: CleanTryOnInput): Promise<CleanTryOnR
     const garmentEnforcement = strictProfile
       ? buildGarmentEnforcementBlock(strictProfile).replace(/\s+/g, ' ').slice(0, 2200)
       : ''
+    const swapRegionLock = buildSwapRegionLock(intel)
 
     // LOGO INSTRUCTION — conditional on the analyzer actually detecting a
     // logo/emblem on the garment. When there IS one we instruct exact
@@ -547,6 +565,7 @@ export async function runCleanTryOn(input: CleanTryOnInput): Promise<CleanTryOnR
       `This is a clothing swap only, not a restyle, retouch, or portrait regeneration. ` +
       `Keep the person's face, eyes, eyebrows, nose, lips, jawline, facial hair, hairstyle, skin tone, ears, earrings, glasses, watch, bracelets, body proportions, and expression identical to image 1; ` +
       `keep the background, camera angle, lighting and crop unchanged. ` +
+      `${swapRegionLock} ` +
       // FRAMING LOCK — without this FLUX-2 [pro] re-centres on the face,
       // shrinking the visible torso and producing head-heavy outputs where
       // the new garment barely shows. Pin the head-to-body ratio to image 1.
@@ -561,6 +580,7 @@ export async function runCleanTryOn(input: CleanTryOnInput): Promise<CleanTryOnR
       `Do not beautify, smooth skin, sharpen eyes, alter beard shape, change hairstyle, add jewelry, add makeup, add accessories, change expression, or modify any non-clothing part of the person. ` +
       `Match the garment in image 2 exactly: same colours and hue, same neckline, sleeve length, hemline and overall fit. ` +
       `Reproduce the garment's pattern and texture detail faithfully — do not simplify, recolour or wash out the motifs that ARE present in image 2. ` +
+      `Do not restyle the outfit into a different fashion look. Do not change non-target garments just because the product photo shows companion pieces or a styled model. ` +
       `${compactGarmentLock} ` +
       `${garmentEnforcement} ` +
       `${logoInstruction}` +

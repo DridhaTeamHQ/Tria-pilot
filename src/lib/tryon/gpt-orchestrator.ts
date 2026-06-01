@@ -251,7 +251,7 @@ export async function orchestrateTryOn(params: {
     const userContent: any[] = [
       {
         type: 'text',
-        text: `${params.productText ? `Product: ${params.productText.slice(0, 200)}\n\n` : ''}${params.garmentSummary ? `Garment summary: ${params.garmentSummary.slice(0, 200)}\n\n` : ''}Candidate photos manifest:\n${manifest}${avoidClause}${graphicClause}${styledLookClause}\n\nLook at the garment (Image 1) and each candidate (Images 2-${candidatesForCall.length + 1}). Pick the 3 best photos for this swap and write a FLUX prompt for each. Return JSON only.`,
+        text: `${params.productText ? `Product: ${params.productText.slice(0, 200)}\n\n` : ''}${params.garmentSummary ? `Garment summary: ${params.garmentSummary.slice(0, 200)}\n\n` : ''}Candidate photos manifest:\n${manifest}${avoidClause}${graphicClause}${styledLookClause}\n\nIMPORTANT REGION LOCK: if the product is an upper-body garment, preserve the influencer's original pants, shoes, and lower-body styling from their own photo. If the product is a lower-body garment, preserve the influencer's original top and upper-body styling. Never copy companion garments from the product model unless the sold product itself clearly includes them.\n\nLook at the garment (Image 1) and each candidate (Images 2-${candidatesForCall.length + 1}). Pick the 3 best photos for this swap and write a FLUX prompt for each. Return JSON only.`,
       },
       // Image 1 = the garment
       {
