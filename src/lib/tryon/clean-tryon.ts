@@ -50,9 +50,19 @@ const IDENTITY_GUARD_MODE: 'off' | 'soft' | 'strict' =
     : process.env.TRYON_IDENTITY_GUARD_MODE === 'soft'
       ? 'soft'
       : 'strict'
-const STRICT_FACE_IDENTITY_MIN = 78
-const STRICT_BODY_CONSISTENCY_MIN = 72
-const STRICT_GARMENT_FIDELITY_MIN = 78
+
+function readGuardThreshold(name: string, fallback: number): number {
+  const raw = process.env[name]
+  if (!raw) return fallback
+  const parsed = Number.parseInt(raw, 10)
+  return Number.isFinite(parsed) ? parsed : fallback
+}
+
+const STRICT_FACE_IDENTITY_MIN = readGuardThreshold('TRYON_STRICT_FACE_IDENTITY_MIN', 84)
+const STRICT_BODY_CONSISTENCY_MIN = readGuardThreshold('TRYON_STRICT_BODY_CONSISTENCY_MIN', 78)
+const STRICT_GARMENT_FIDELITY_MIN = readGuardThreshold('TRYON_STRICT_GARMENT_FIDELITY_MIN', 80)
+const STRICT_COMPOSITION_QUALITY_MIN = readGuardThreshold('TRYON_STRICT_COMPOSITION_QUALITY_MIN', 70)
+const STRICT_BACKGROUND_INTEGRITY_MIN = readGuardThreshold('TRYON_STRICT_BACKGROUND_INTEGRITY_MIN', 68)
 
 export interface CleanTryOnInput {
   /** Garment image, raw base64 (no data: prefix) or with prefix */
@@ -474,6 +484,19 @@ export async function runCleanTryOn(input: CleanTryOnInput): Promise<CleanTryOnR
       const faceIdentityLow = assessment.scores.faceIdentity < STRICT_FACE_IDENTITY_MIN
       const bodyConsistencyLow = assessment.scores.bodyConsistency < STRICT_BODY_CONSISTENCY_MIN
       const garmentFidelityLow = assessment.scores.garmentFidelity < STRICT_GARMENT_FIDELITY_MIN
+      const compositionQualityLow = assessment.scores.compositionQuality < STRICT_COMPOSITION_QUALITY_MIN
+      const backgroundIntegrityLow = assessment.scores.backgroundIntegrity < STRICT_BACKGROUND_INTEGRITY_MIN
+      const failedReasons = [
+        faceIdentityLow ? `face=${assessment.scores.faceIdentity}<${STRICT_FACE_IDENTITY_MIN}` : null,
+        bodyConsistencyLow ? `body=${assessment.scores.bodyConsistency}<${STRICT_BODY_CONSISTENCY_MIN}` : null,
+        garmentFidelityLow ? `garment=${assessment.scores.garmentFidelity}<${STRICT_GARMENT_FIDELITY_MIN}` : null,
+        compositionQualityLow ? `composition=${assessment.scores.compositionQuality}<${STRICT_COMPOSITION_QUALITY_MIN}` : null,
+        backgroundIntegrityLow ? `background=${assessment.scores.backgroundIntegrity}<${STRICT_BACKGROUND_INTEGRITY_MIN}` : null,
+        assessment.criticalGarmentDetailMissing ? 'critical_garment_detail_missing' : null,
+        assessment.criticalColorMismatch ? 'critical_color_mismatch' : null,
+        assessment.criticalFitMismatch ? 'critical_fit_mismatch' : null,
+      ].filter((value): value is string => Boolean(value))
+
       if (
         IDENTITY_GUARD_MODE === 'strict' &&
         assessment.validationAvailable !== false &&
@@ -482,19 +505,21 @@ export async function runCleanTryOn(input: CleanTryOnInput): Promise<CleanTryOnR
           faceIdentityLow ||
           bodyConsistencyLow ||
           garmentFidelityLow ||
+          compositionQualityLow ||
+          backgroundIntegrityLow ||
           assessment.criticalGarmentDetailMissing ||
           assessment.criticalColorMismatch ||
           assessment.criticalFitMismatch
         )
       ) {
         throw new Error(
-          `Try-on guard rejected output: face=${assessment.scores.faceIdentity}, body=${assessment.scores.bodyConsistency}, garment=${assessment.scores.garmentFidelity}. ${assessment.garmentCorrectionGuidance || assessment.identityCorrectionGuidance || assessment.reason}`
+          `Try-on strict face consistency gate rejected output: ${failedReasons.join(', ')}. ${assessment.garmentCorrectionGuidance || assessment.identityCorrectionGuidance || assessment.compositionCorrectionGuidance || assessment.reason}`
         )
       }
 
-      if ((assessment.shouldRetry || faceIdentityLow || bodyConsistencyLow || garmentFidelityLow) && isDev) {
+      if ((assessment.shouldRetry || failedReasons.length > 0) && isDev) {
         console.warn(
-          `⚠️ [clean] face identity guard warning slot ${idx + 1}: face=${assessment.scores.faceIdentity}, body=${assessment.scores.bodyConsistency}, garment=${assessment.scores.garmentFidelity}`
+          `⚠️ [clean] face identity guard warning slot ${idx + 1}: face=${assessment.scores.faceIdentity}, body=${assessment.scores.bodyConsistency}, garment=${assessment.scores.garmentFidelity}, composition=${assessment.scores.compositionQuality}, background=${assessment.scores.backgroundIntegrity}`
         )
       }
 

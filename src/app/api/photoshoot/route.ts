@@ -250,9 +250,18 @@ export async function POST(request: Request) {
     )
 
     if (outputs.length === 0) {
+      const allIdentityRejected =
+        failures.length > 0 &&
+        failures.every((failure) => /face consistency guard|identity could not be confirmed safely/i.test(failure.error))
       return NextResponse.json(
-        { error: 'No photoshoot images could be generated. Please try again.', failures },
-        { status: 502, headers: { 'Cache-Control': 'no-store' } },
+        {
+          error: allIdentityRejected
+            ? 'We could not produce a photoshoot image that preserved the face closely enough. Please retry with a clearer front-facing reference photo.'
+            : 'No photoshoot images could be generated. Please try again.',
+          failures,
+          code: allIdentityRejected ? 'PHOTOSHOOT_FACE_GUARD_REJECTED' : 'PHOTOSHOOT_GENERATION_FAILED',
+        },
+        { status: allIdentityRejected ? 422 : 502, headers: { 'Cache-Control': 'no-store' } },
       )
     }
 
@@ -269,7 +278,17 @@ export async function POST(request: Request) {
       // the swapped face matches the source.
       identitySimilarity: similarities.length ? Math.max(...similarities) : null,
     }
-    return NextResponse.json({ outputs, failures, faceRestore }, { headers: { 'Cache-Control': 'no-store' } })
+    return NextResponse.json(
+      {
+        outputs,
+        failures,
+        faceRestore,
+        guardrails: {
+          similarityValidationActive: Boolean((process.env.FACE_SWAP_SERVICE_URL || '').trim()) || process.env.PHOTOSHOOT_FACE_RESTORE === '1' || process.env.PHOTOSHOOT_FACE_RESTORE === 'true',
+        },
+      },
+      { headers: { 'Cache-Control': 'no-store' } },
+    )
   } catch (error) {
     console.error('[photoshoot] error:', error)
     return NextResponse.json(

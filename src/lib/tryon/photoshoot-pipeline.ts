@@ -127,6 +127,18 @@ const FACE_RESTORE_ENABLED =
   process.env.PHOTOSHOOT_FACE_RESTORE === '1' ||
   process.env.PHOTOSHOOT_FACE_RESTORE === 'true'
 
+function readSimilarityThreshold(name: string, fallback: number): number {
+  const raw = process.env[name]
+  if (!raw) return fallback
+  const parsed = Number.parseFloat(raw)
+  if (!Number.isFinite(parsed)) return fallback
+  return Math.max(0, Math.min(1, parsed))
+}
+
+const PHOTOSHOOT_REROLL_MIN_FACE_SIMILARITY = readSimilarityThreshold('PHOTOSHOOT_REROLL_MIN_FACE_SIMILARITY', 0.62)
+const PHOTOSHOOT_HARD_MIN_FACE_SIMILARITY = readSimilarityThreshold('PHOTOSHOOT_HARD_MIN_FACE_SIMILARITY', 0.58)
+const PHOTOSHOOT_WARN_MIN_FACE_SIMILARITY = readSimilarityThreshold('PHOTOSHOOT_WARN_MIN_FACE_SIMILARITY', 0.68)
+
 // The forensic facial-text technique helps Imagen, but Google's own Nano Banana
 // guidance is the opposite — long face-text DILUTES the image reference. So it's
 // OFF by default for our Nano Banana pipeline (enable to A/B test only).
@@ -549,8 +561,8 @@ export async function runPhotoshoot(input: PhotoshootInput): Promise<PhotoshootR
       .map((s) => s.faceSimilarity)
       .filter((v): v is number => typeof v === 'number')
     const bestSoFar = scoredSuccesses.length ? Math.max(...scoredSuccesses) : null
-    if (bestSoFar !== null && bestSoFar < 0.5) {
-      console.warn(`🔁 [photoshoot] best similarity ${bestSoFar.toFixed(2)} < 0.5 — auto re-rolling 2 extra variants with stronger identity prompt`)
+    if (bestSoFar !== null && bestSoFar < PHOTOSHOOT_REROLL_MIN_FACE_SIMILARITY) {
+      console.warn(`🔁 [photoshoot] best similarity ${bestSoFar.toFixed(2)} < ${PHOTOSHOOT_REROLL_MIN_FACE_SIMILARITY.toFixed(2)} — auto re-rolling 2 extra variants with stronger identity prompt`)
       // Override buildPrompt for re-rolls by wrapping the variant runner.
       const reRollVariant = async (variant: number): Promise<PhotoshootSlot | PhotoshootFailure> => {
         const slotStart = Date.now()
@@ -590,7 +602,29 @@ export async function runPhotoshoot(input: PhotoshootInput): Promise<PhotoshootR
     const failures = allSlots.filter((s): s is PhotoshootFailure => !isPhotoshootSlotSuccess(s))
     // Rank by face similarity (highest first); slots without a score sink last.
     successes.sort((a, b) => (b.faceSimilarity ?? -1) - (a.faceSimilarity ?? -1))
-    const kept = successes.slice(0, variantCount)
+    const scored = successes.filter((s): s is PhotoshootSlot & { faceSimilarity: number } => typeof s.faceSimilarity === 'number')
+    const rejectedForIdentity: PhotoshootFailure[] = scored
+      .filter((slot) => slot.faceSimilarity < PHOTOSHOOT_HARD_MIN_FACE_SIMILARITY)
+      .map((slot) => ({
+        variant: slot.variant,
+        presetId: slot.presetId,
+        prompt: slot.prompt,
+        error: `Rejected by photoshoot face consistency guard: similarity ${slot.faceSimilarity.toFixed(2)} < ${PHOTOSHOOT_HARD_MIN_FACE_SIMILARITY.toFixed(2)}. Facial structure drifted too far from the source.`,
+        durationMs: slot.durationMs,
+      }))
+    const unscoredValidationFailures: PhotoshootFailure[] =
+      successes.length > 0 && scored.length === 0
+        ? successes.map((slot) => ({
+            variant: slot.variant,
+            presetId: slot.presetId,
+            prompt: slot.prompt,
+            error: 'Rejected by photoshoot face consistency guard: face validation score unavailable, so identity could not be confirmed safely.',
+            durationMs: slot.durationMs,
+          }))
+        : []
+    const kept = scored
+      .filter((slot) => slot.faceSimilarity >= PHOTOSHOOT_HARD_MIN_FACE_SIMILARITY)
+      .slice(0, variantCount)
     // Re-index so the UI shows clean "Look 1/2/3".
     kept.forEach((s, i) => { s.variant = i })
 
@@ -606,17 +640,17 @@ export async function runPhotoshoot(input: PhotoshootInput): Promise<PhotoshootR
       // means face-swap is on but Gemini's source faces are too far off.
       // Common causes: face-crop too small, reference photo low-res, or
       // InsightFace service unhealthy and silently degrading.
-      if (best < 0.45) {
-        console.warn(`⚠️ [photoshoot] LOW IDENTITY MATCH — best similarity ${best.toFixed(2)} < 0.45. Faces will look "almost right" but drift. Check FACE_SWAP_SERVICE_URL health and face-crop quality.`)
+      if (best < PHOTOSHOOT_WARN_MIN_FACE_SIMILARITY) {
+        console.warn(`⚠️ [photoshoot] LOW IDENTITY MATCH — best similarity ${best.toFixed(2)} < ${PHOTOSHOOT_WARN_MIN_FACE_SIMILARITY.toFixed(2)}. Faces will look almost right but drift. Check FACE_SWAP_SERVICE_URL health and face-crop quality.`)
       }
     } else {
       // No InsightFace scores at all → face-swap silently skipped every variant.
       // This is the #1 cause of "faces don't match" complaints in prod.
       console.warn(`⚠️ [photoshoot] NO face-similarity scores returned across ${successes.length} variants — InsightFace is NOT running. Faces will drift. Verify FACE_SWAP_SERVICE_URL is set and the Render service is awake.`)
     }
-    selections = kept.length ? kept : allSlots.slice(0, variantCount)
+    selections = kept.length ? kept : [...rejectedForIdentity, ...unscoredValidationFailures, ...failures].slice(0, variantCount)
     // If everything failed, still surface the failures so the caller sees why.
-    if (!kept.length && failures.length) selections = failures.slice(0, variantCount)
+    if (!kept.length && failures.length && selections.length === 0) selections = failures.slice(0, variantCount)
   } else {
     selections = allSlots.slice(0, variantCount)
   }

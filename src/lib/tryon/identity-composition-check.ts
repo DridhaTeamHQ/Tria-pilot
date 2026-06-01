@@ -80,6 +80,8 @@ export async function assessIdentityAndComposition(params: {
           'Rules:',
           '- Compare the generated image against the source portrait for identity preservation.',
           '- Face identity means same person: facial geometry, eye relation, eye aperture, brow-eye spacing, cheek fullness, midface width, nose-lip-jaw relation, age impression, and skin texture.',
+          '- Facial structure must stay effectively unchanged: jawline width, cheek shape, chin shape, nose bridge, nose tip, lip contour, eye shape, and brow position should look like the actual person, not a similar-looking model.',
+          '- "Close" is not good enough. If the generated face looks beautified, slimmed, younger, smoother, more symmetrical, or slightly recast, score faceIdentity low.',
           '- Body consistency means same build, shoulder width, torso width, limb thickness, and natural proportions.',
           '- Composition quality means framing, balance, depth structure, and subject placement feel photographic and intentional.',
           '- Background integrity means no Gemini blur haze, no smear, no fake bokeh masking, and no pasted subject edges.',
@@ -89,6 +91,7 @@ export async function assessIdentityAndComposition(params: {
           '- If expected colors are provided, compare the generated garment against the garment reference, not against the lighting of the scene. Shading is allowed, but hue/fabric color drift, washing out, or changing navy to black/blue/gray is a failure. Set criticalColorMismatch=true for clear color drift.',
           '- If expected fit is provided, check whether the garment fit matches the product reference and sits naturally on the source body. A regular shirt becoming baggy/oversized, skin-tight, stretched, warped, pasted-on, or detached is a failure. Set criticalFitMismatch=true for clear fit/drape mismatch.',
           '- Be strict about slight face change. If the generated face looks like a similar person instead of the same person, score it low.',
+          '- If the eyes, nose, jaw, mouth, facial fullness, beard contour, or hairline look altered enough that friends would say "almost them but not quite", that is a failure.',
           '- Pay special attention to eye shape/opening and facial fullness. Slightly puffier cheeks or changed eye aperture are failures.',
           '- If the shirt changes into a different silhouette, collar, sleeve length, or button structure, garment fidelity is low.',
         ].join('\n'),
@@ -238,11 +241,11 @@ export async function assessIdentityAndComposition(params: {
     criticalGarmentDetailMissing ||
     criticalColorMismatch ||
     criticalFitMismatch ||
-    scores.faceIdentity < 70 ||
-    scores.bodyConsistency < 68 ||
-    scores.garmentFidelity < 70 ||
-    minScore < 60 ||
-    (avgScore < 68 && majorIssues.length >= 2)
+    scores.faceIdentity < 78 ||
+    scores.bodyConsistency < 74 ||
+    scores.garmentFidelity < 76 ||
+    minScore < 66 ||
+    (avgScore < 72 && majorIssues.length >= 2)
 
   return {
     shouldRetry,
