@@ -35,8 +35,11 @@ export interface FaceRestoreInput {
     /** Additional source photos of the SAME person — InsightFace averages their
      *  embeddings with the primary for a robust identity (not photo-dependent). */
     sourceImagesBase64?: string[]
-    generatedFace: FaceCoordinates
-    personFace: FaceCoordinates
+    // Optional — InsightFace ignores these (it runs its own face detection
+    // internally with buffalo_l). Kept optional for backward compatibility
+    // with callers that already have coordinates from upstream detection.
+    generatedFace?: FaceCoordinates
+    personFace?: FaceCoordinates
     aspectRatio?: string
     perceivedGender?: 'masculine' | 'feminine' | 'neutral'
 }

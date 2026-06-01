@@ -621,9 +621,42 @@ export async function runCleanTryOn(input: CleanTryOnInput): Promise<CleanTryOnR
           seed: seed + attempt,
         })
         const downloaded = await downloadFluxImage(result.imageUrl)
-        const outputBase64 = `data:${downloaded.mime};base64,${downloaded.base64}`
+        let outputBase64 = `data:${downloaded.mime};base64,${downloaded.base64}`
+        if (isDev) console.log(`✅ [clean] Slot ${idx + 1} FLUX done in ${Date.now() - slotStart}ms (job ${result.jobId.slice(0, 8)})`)
+
+        // ── FACE-IDENTITY RESTORATION ─────────────────────────────────────
+        // FLUX-2 [pro] (and Gemini) both drift face geometry across the 3
+        // Looks because each Look starts from a different reference photo
+        // and neither model has true identity-embedding conditioning. We
+        // post-process the output with InsightFace's inswapper_128 — an
+        // embedding-level face swap (same neural net Roop/Reactor use) —
+        // to lock identity. Gated on FACE_SWAP_SERVICE_URL being set so
+        // the step is a no-op until the microservice is deployed.
+        if ((process.env.FACE_SWAP_SERVICE_URL || '').trim()) {
+          try {
+            const { restoreFaceIdentity } = await import('@/lib/tryon/face-restore')
+            const restoreStart = Date.now()
+            const restored = await restoreFaceIdentity({
+              generatedImageBase64: outputBase64,
+              personImageBase64: personBase64,
+              faceCropBase64: hasFace ? faceCropBase64 : undefined,
+              aspectRatio: input.aspectRatio || '4:5',
+            })
+            if (restored.success && restored.restoredImageBase64) {
+              outputBase64 = restored.restoredImageBase64
+              if (isDev) console.log(`   👤 [clean] Slot ${idx + 1} face-restored via ${restored.method || 'unknown'} in ${Date.now() - restoreStart}ms`)
+            } else if (isDev) {
+              console.warn(`   ⚠️ Slot ${idx + 1} face restore returned no image: ${restored.error || 'unknown'}`)
+            }
+          } catch (faceErr) {
+            // Graceful degradation — keep the un-restored FLUX output.
+            if (isDev) console.warn(`   ⚠️ Slot ${idx + 1} face restore threw: ${faceErr instanceof Error ? faceErr.message : faceErr}`)
+          }
+        }
+
+        // Run identity QC on the FINAL output (after any face restoration).
         const identityAssessment = await validateIdentity(outputBase64)
-        if (isDev) console.log(`✅ [clean] Slot ${idx + 1} done in ${Date.now() - slotStart}ms (FLUX job ${result.jobId.slice(0, 8)})`)
+
         return {
           photoId: sel.photoId, prompt: sel.prompt, reasoning: sel.reasoning,
           outputBase64, jobId: result.jobId, seed: result.seed,
