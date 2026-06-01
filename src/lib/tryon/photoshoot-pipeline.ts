@@ -203,7 +203,7 @@ const POSE_VARIATIONS = [
 const FACE_LOCK_SYSTEM_INSTRUCTION = `You are generating a photorealistic PHOTOSHOOT photograph of a REAL, specific person. It must look like a genuine camera photo, never an AI render.
 
 KEEP THE PERSON — TOP PRIORITY:
-- The face/head in the output MUST be the SAME person shown in the reference photos — you are given MULTIPLE ANGLES of this one real person plus a close-up face crop; study them together to lock their 3D facial structure. Maintain the EXACT same facial features as the references — same eye shape, nose shape, jawline contour, cheekbones, skin tone and skin texture, hair, facial hair, and any eyewear. Do NOT beautify, smooth, slim, re-age, or average them into a different-looking model. Their friends must recognise them instantly.
+- The face/head in the output MUST be the SAME person shown in the reference images — the FIRST image is a close-up identity anchor of their face, the next is a wider view of the same person. Treat the close-up as the definitive identity reference and study it carefully. Maintain the EXACT same facial features as the references — same eye shape, nose shape, jawline contour, cheekbones, skin tone and skin texture, hair, facial hair, and any eyewear. Do NOT beautify, smooth, slim, re-age, or average them into a different-looking model. Their friends must recognise them instantly.
 - BODY (do NOT reimagine): keep the person's REAL body type, build, weight, height and natural proportions from the reference photos — same shoulder width, torso, waist, arms and overall figure and skin tone. Do NOT slim them down, make them taller, more "model-like", curvier, or otherwise idealize/alter their physique. Reproduce the actual person, not an improved version.
 - FRAMING (critical for identity): shoot a MEDIUM portrait from roughly the waist or chest up so the FACE IS LARGE and clearly resolved in the frame. Do NOT render a small full-body figure where the face loses detail. Keep the head facing roughly toward the camera; avoid extreme head turns.
 
@@ -257,25 +257,28 @@ async function generateOneVariant(opts: {
   prompt: string
   aspectRatio: string
 }): Promise<string> {
-  // MULTIPLE angles of the SAME person FIRST (multi-reference = the model gets
-  // a 3D understanding of the head → far less drift), then the close-up face
-  // crop as the definitive identity detail, then the garment.
+  // IMAGE ORDER MATTERS in Nano Banana — the first image gets the strongest
+  // conditioning weight. We put the FACE CROP first (the most direct identity
+  // signal — just the face, no body/background distraction), then the wider
+  // person reference for body proportions and skin tone, then the garment.
+  // This is the opposite of the previous order (wide first, crop second) which
+  // let body/background tokens drown out the face features.
   const contents: ContentListUnion = []
-  opts.personImages.forEach((img, i) => {
-    contents.push(
-      { inlineData: { data: img, mimeType: 'image/jpeg' } } as any,
-      `Reference photo ${i + 1} — the SAME real person (a different angle of the one person you must reproduce): keep this exact face and identity.`,
-    )
-  })
   if (opts.faceCropB64) {
     contents.push(
       { inlineData: { data: opts.faceCropB64, mimeType: 'image/jpeg' } } as any,
-      'Close-up of the SAME person\'s face — the definitive identity reference; the output face MUST match it exactly.',
+      'IDENTITY ANCHOR — close-up of the person\'s face. The output face MUST match this exactly: same eye shape, nose, jawline, lips, skin tone, facial hair and every feature. This is the definitive identity reference.',
     )
   }
+  opts.personImages.forEach((img, i) => {
+    contents.push(
+      { inlineData: { data: img, mimeType: 'image/jpeg' } } as any,
+      `Reference photo ${i + 1} of the SAME person — wider view for body proportions, build, skin tone and overall identity. Keep this exact face and body.`,
+    )
+  })
   contents.push(
     { inlineData: { data: opts.garmentB64, mimeType: 'image/jpeg' } } as any,
-    'The garment to wear: copy its exact color, pattern, texture, and cut.',
+    'The garment to wear: copy its exact color, pattern, texture, and cut. Ignore any face/model in this garment image.',
     opts.prompt,
   )
 
@@ -498,8 +501,12 @@ export async function runPhotoshoot(input: PhotoshootInput): Promise<PhotoshootR
   // few EXTRA variants, then keep the highest-matching ones. Beats the 10-20%
   // drift everyone hits, automatically. Without the swap (no score) we just
   // generate the target count.
+  //
+  // Pool size bumped from +2 to +3 — a wider candidate pool gives the
+  // similarity sorter more options to find a high-match output. Capped at 7
+  // total so per-request cost stays bounded.
   const curate = FACE_RESTORE_ENABLED && variantCount >= 1
-  const poolCount = curate ? Math.min(variantCount + 2, 6) : variantCount
+  const poolCount = curate ? Math.min(variantCount + 3, 7) : variantCount
 
   const allSlots = await Promise.all(
     Array.from({ length: poolCount }, (_, i) => runVariant(i)),
@@ -514,8 +521,26 @@ export async function runPhotoshoot(input: PhotoshootInput): Promise<PhotoshootR
     const kept = successes.slice(0, variantCount)
     // Re-index so the UI shows clean "Look 1/2/3".
     kept.forEach((s, i) => { s.variant = i })
-    if (isDev) {
-      console.log(`🏆 [photoshoot] curated ${kept.length}/${successes.length} by similarity: ${successes.map((s) => (s.faceSimilarity ?? 0).toFixed(2)).join(', ')}`)
+
+    // Always log similarity scores, not just in dev — these are the single
+    // most important diagnostic for face-consistency complaints.
+    const scores = successes.map((s) => s.faceSimilarity).filter((v): v is number => typeof v === 'number')
+    if (scores.length) {
+      const best = Math.max(...scores)
+      const avg = scores.reduce((a, b) => a + b, 0) / scores.length
+      const allStr = successes.map((s) => (s.faceSimilarity ?? 0).toFixed(2)).join(', ')
+      console.log(`🏆 [photoshoot] curated ${kept.length}/${successes.length} — similarities: [${allStr}] best=${best.toFixed(2)} avg=${avg.toFixed(2)}`)
+      // Loud warning when even the BEST variant is a poor identity match —
+      // means face-swap is on but Gemini's source faces are too far off.
+      // Common causes: face-crop too small, reference photo low-res, or
+      // InsightFace service unhealthy and silently degrading.
+      if (best < 0.45) {
+        console.warn(`⚠️ [photoshoot] LOW IDENTITY MATCH — best similarity ${best.toFixed(2)} < 0.45. Faces will look "almost right" but drift. Check FACE_SWAP_SERVICE_URL health and face-crop quality.`)
+      }
+    } else {
+      // No InsightFace scores at all → face-swap silently skipped every variant.
+      // This is the #1 cause of "faces don't match" complaints in prod.
+      console.warn(`⚠️ [photoshoot] NO face-similarity scores returned across ${successes.length} variants — InsightFace is NOT running. Faces will drift. Verify FACE_SWAP_SERVICE_URL is set and the Render service is awake.`)
     }
     selections = kept.length ? kept : allSlots.slice(0, variantCount)
     // If everything failed, still surface the failures so the caller sees why.
