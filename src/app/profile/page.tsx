@@ -908,7 +908,94 @@ export default function ProfilePage() {
                 </div>
               </div>
             </BrutalCard>
+          </div>
 
+          <div className="lg:col-span-4 flex flex-col space-y-10 sm:space-y-0 sm:grid sm:grid-cols-2 lg:grid-cols-1 sm:gap-10 lg:gap-8 lg:space-y-6 lg:sticky lg:top-28 self-start">
+            <BrutalCard className="text-center sm:mt-2">
+              <h3 className="text-sm font-bold uppercase tracking-widest mb-2">Current Level</h3>
+              <div className="text-6xl font-black mb-2">{Math.round(Number(profile?.badgeScore || 0))}</div>
+              <div className={`inline-block px-4 py-1 border-[2px] border-black text-xs font-bold uppercase tracking-widest ${level.bg} mb-6`}>
+                {level.label}
+              </div>
+
+              <div className="w-full h-4 border-[2px] border-black bg-white rounded-full overflow-hidden relative">
+                <div
+                  className="absolute top-0 left-0 h-full bg-black"
+                  style={{ width: `${Math.min(100, Number(profile?.badgeScore || 0))}%` }}
+                />
+              </div>
+              <p className="text-xs font-bold mt-2 text-right">{Math.min(100, Number(profile?.badgeScore || 0))}/100 XP</p>
+              <p className="text-[11px] font-semibold text-black/50 mt-3">Last updated {formatLastUpdated(lastUpdated)}</p>
+            </BrutalCard>
+
+            <BrutalCard title="Audience Metrics">
+              <button type="button"
+                onClick={() => toggleSection('metrics')}
+                className="md:hidden w-full mb-4 flex items-center justify-between border-[2px] border-black px-3 py-2 font-bold uppercase text-xs"
+              >
+                <span>{expanded.metrics ? 'Hide Details' : 'Show Details'}</span>
+                <ChevronDown className={`w-4 h-4 transition-transform ${expanded.metrics ? 'rotate-180' : ''}`} />
+              </button>
+
+              <div className={`${expanded.metrics ? 'block' : 'hidden'} md:block`}>
+                <div className="space-y-6 mt-2">
+                  <div className="flex items-center justify-between pb-4 border-b-[2px] border-black/10">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-[#FFD93D] border-[2px] border-black flex items-center justify-center">
+                        <Users className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <p className="text-xs font-bold uppercase text-black/50">Followers</p>
+                        <p className="text-2xl font-black">{followers.toLocaleString()}</p>
+                        <p className="text-[11px] text-black/50 font-semibold">Total followers</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between pb-4 border-b-[2px] border-black/10">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-[#90E8FF] border-[2px] border-black flex items-center justify-center">
+                        <Zap className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <p className="text-xs font-bold uppercase text-black/50">Engagement</p>
+                        <p className="text-2xl font-black">{engagementRate}%</p>
+                        <p className="text-[11px] text-black/50 font-semibold">{engagementRate >= 3 ? 'Healthy rate' : 'Can improve with consistency'}</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-[#FF90E8] border-[2px] border-black flex items-center justify-center">
+                        <TrendingUp className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <p className="text-xs font-bold uppercase text-black/50">Audience Growth</p>
+                        <p className="text-2xl font-black">{audienceRate}%</p>
+                        <p className="text-[11px] text-black/50 font-semibold">Compared with last 30 days</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </BrutalCard>
+
+            {profile?.audienceType && Array.isArray(profile.audienceType) && profile.audienceType.length > 0 && (
+              <BrutalCard title="Audience Type">
+                <div className="flex flex-wrap gap-2">
+                  {profile.audienceType.map((type: string) => (
+                    <span key={type} className="px-3 py-1 bg-gray-200 border-[2px] border-black font-bold text-xs uppercase">
+                      {type}
+                    </span>
+                  ))}
+                </div>
+              </BrutalCard>
+            )}
+          </div>
+        </div>
+
+        <div className="w-full space-y-10 mt-10">
             {/* Reference library */}
             <BrutalCard title="Reference Library">
               <button type="button"
@@ -1151,91 +1238,6 @@ export default function ProfilePage() {
               </div>
             </BrutalCard>
           </div>
-
-          <div className="lg:col-span-4 flex flex-col space-y-10 sm:space-y-0 sm:grid sm:grid-cols-2 lg:grid-cols-1 sm:gap-10 lg:gap-8 lg:space-y-6 lg:sticky lg:top-28 self-start">
-            <BrutalCard className="text-center sm:mt-2">
-              <h3 className="text-sm font-bold uppercase tracking-widest mb-2">Current Level</h3>
-              <div className="text-6xl font-black mb-2">{Math.round(Number(profile?.badgeScore || 0))}</div>
-              <div className={`inline-block px-4 py-1 border-[2px] border-black text-xs font-bold uppercase tracking-widest ${level.bg} mb-6`}>
-                {level.label}
-              </div>
-
-              <div className="w-full h-4 border-[2px] border-black bg-white rounded-full overflow-hidden relative">
-                <div
-                  className="absolute top-0 left-0 h-full bg-black"
-                  style={{ width: `${Math.min(100, Number(profile?.badgeScore || 0))}%` }}
-                />
-              </div>
-              <p className="text-xs font-bold mt-2 text-right">{Math.min(100, Number(profile?.badgeScore || 0))}/100 XP</p>
-              <p className="text-[11px] font-semibold text-black/50 mt-3">Last updated {formatLastUpdated(lastUpdated)}</p>
-            </BrutalCard>
-
-            <BrutalCard title="Audience Metrics">
-              <button type="button"
-                onClick={() => toggleSection('metrics')}
-                className="md:hidden w-full mb-4 flex items-center justify-between border-[2px] border-black px-3 py-2 font-bold uppercase text-xs"
-              >
-                <span>{expanded.metrics ? 'Hide Details' : 'Show Details'}</span>
-                <ChevronDown className={`w-4 h-4 transition-transform ${expanded.metrics ? 'rotate-180' : ''}`} />
-              </button>
-
-              <div className={`${expanded.metrics ? 'block' : 'hidden'} md:block`}>
-                <div className="space-y-6 mt-2">
-                  <div className="flex items-center justify-between pb-4 border-b-[2px] border-black/10">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-[#FFD93D] border-[2px] border-black flex items-center justify-center">
-                        <Users className="w-5 h-5" />
-                      </div>
-                      <div>
-                        <p className="text-xs font-bold uppercase text-black/50">Followers</p>
-                        <p className="text-2xl font-black">{followers.toLocaleString()}</p>
-                        <p className="text-[11px] text-black/50 font-semibold">Total followers</p>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center justify-between pb-4 border-b-[2px] border-black/10">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-[#90E8FF] border-[2px] border-black flex items-center justify-center">
-                        <Zap className="w-5 h-5" />
-                      </div>
-                      <div>
-                        <p className="text-xs font-bold uppercase text-black/50">Engagement</p>
-                        <p className="text-2xl font-black">{engagementRate}%</p>
-                        <p className="text-[11px] text-black/50 font-semibold">{engagementRate >= 3 ? 'Healthy rate' : 'Can improve with consistency'}</p>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-[#FF90E8] border-[2px] border-black flex items-center justify-center">
-                        <TrendingUp className="w-5 h-5" />
-                      </div>
-                      <div>
-                        <p className="text-xs font-bold uppercase text-black/50">Audience Growth</p>
-                        <p className="text-2xl font-black">{audienceRate}%</p>
-                        <p className="text-[11px] text-black/50 font-semibold">Compared with last 30 days</p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </BrutalCard>
-
-            {profile?.audienceType && Array.isArray(profile.audienceType) && profile.audienceType.length > 0 && (
-              <BrutalCard title="Audience Type">
-                <div className="flex flex-wrap gap-2">
-                  {profile.audienceType.map((type: string) => (
-                    <span key={type} className="px-3 py-1 bg-gray-200 border-[2px] border-black font-bold text-xs uppercase">
-                      {type}
-                    </span>
-                  ))}
-                </div>
-              </BrutalCard>
-            )}
-          </div>
-        </div>
       </div>
     </div>
   )
