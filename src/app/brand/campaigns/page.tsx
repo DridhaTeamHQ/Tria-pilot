@@ -147,14 +147,14 @@ export default function CampaignsPage() {
       variants={pageVariants}
       initial="initial"
       animate="animate"
-      className="min-h-[calc(100vh-80px)] bg-[#FAFAF8] pt-8 pb-10 md:pb-12 relative"
+      className="min-h-[calc(100vh-80px)] bg-[#FAFAF8] pt-2 pb-10 md:pb-12 relative"
     >
       {/* Background Design: Subtle Grid */}
       <div className="absolute inset-0 pointer-events-none opacity-[0.05] z-0"
         style={{ backgroundImage: 'linear-gradient(#000 0.5px, transparent 0.5px), linear-gradient(90deg, #000 0.5px, transparent 0.5px)', backgroundSize: '40px 40px' }}
       />
 
-      <div className="relative z-10 w-full max-w-[1600px] mx-auto px-4 sm:px-6 py-6 sm:py-8">
+      <div className="relative z-10 w-full max-w-[1600px] mx-auto px-4 sm:px-6 pb-6 sm:pb-8 pt-2 sm:pt-4">
 
         {/* ── HEADER ── */}
         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-end gap-6 mb-10">
