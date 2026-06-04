@@ -106,20 +106,20 @@ function MainTrendChart({ data: inputData, height = '300px', days = 7, activeSer
   const data = useMemo(() => {
     const safeDays = days || 7;
     const endDate = new Date(); // End date is always today for these preset timeframes
-    
+
     return Array.from({ length: safeDays }).map((_, i) => {
       const d = new Date(endDate);
       d.setDate(d.getDate() - (safeDays - 1 - i));
       d.setHours(0, 0, 0, 0);
-      
+
       const existing = inputData?.find(item => {
         const itemDate = new Date(item.day);
         itemDate.setHours(0, 0, 0, 0);
         return itemDate.getTime() === d.getTime();
       });
-      
+
       if (existing) return existing;
-      
+
       return { day: d.toISOString(), clicks: 0, orders: 0, revenue: 0 };
     });
   }, [inputData, days]);
@@ -234,10 +234,10 @@ function MainTrendChart({ data: inputData, height = '300px', days = 7, activeSer
           else if (isLast) transform = "translateX(-100%)"
 
           return (
-            <div 
-              key={i} 
+            <div
+              key={i}
               className="absolute text-[10px] font-bold text-black/30 whitespace-nowrap"
-              style={{ 
+              style={{
                 left: `${(i / Math.max(data.length - 1, 1)) * 100}%`,
                 transform
               }}
@@ -491,21 +491,21 @@ export default function AnalyticsBoard({ expectedRole }: { expectedRole: Role })
                 </h3>
                 <div className="flex items-center gap-6">
                   <div className="flex items-center gap-4">
-                    <div 
+                    <div
                       className={`flex items-center gap-2 cursor-pointer transition-opacity hover:opacity-80 ${!activeSeries.clicks ? 'opacity-40' : ''}`}
                       onClick={() => setActiveSeries(prev => ({ ...prev, clicks: !prev.clicks }))}
                     >
                       <div className="h-3 w-3 rounded-full border-2 border-black bg-[#ea580c]" />
                       <span className="text-[10px] font-black uppercase tracking-wider text-black/40">Signals</span>
                     </div>
-                    <div 
+                    <div
                       className={`flex items-center gap-2 cursor-pointer transition-opacity hover:opacity-80 ${!activeSeries.revenue ? 'opacity-40' : ''}`}
                       onClick={() => setActiveSeries(prev => ({ ...prev, revenue: !prev.revenue }))}
                     >
                       <div className="h-3 w-3 rounded-full border-2 border-black bg-[#172554]" />
                       <span className="text-[10px] font-black uppercase tracking-wider text-black/40">Revenue</span>
                     </div>
-                    <div 
+                    <div
                       className={`flex items-center gap-2 cursor-pointer transition-opacity hover:opacity-80 ${!activeSeries.orders ? 'opacity-40' : ''}`}
                       onClick={() => setActiveSeries(prev => ({ ...prev, orders: !prev.orders }))}
                     >
@@ -514,7 +514,7 @@ export default function AnalyticsBoard({ expectedRole }: { expectedRole: Role })
                     </div>
                   </div>
                   <div className="relative">
-                    <button 
+                    <button
                       onClick={() => setIsChartDaysDropdownOpen(!isChartDaysDropdownOpen)}
                       className="flex items-center gap-1.5 rounded-lg border-2 border-black bg-yellow-300 px-3 py-1.5 text-[10px] font-black uppercase shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-none"
                     >

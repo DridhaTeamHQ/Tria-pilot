@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState, useEffect } from 'react'
+import { useMemo, useState, useEffect, useRef, useCallback } from 'react'
 import { motion } from 'framer-motion'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import {
@@ -140,30 +140,38 @@ function MainTrendChart({ data: inputData, height = '300px', days = 7, activeSer
   const data = useMemo(() => {
     const safeDays = days || 7;
     const endDate = new Date(); // End date is always today for these preset timeframes
-    
+
     return Array.from({ length: safeDays }).map((_, i) => {
       const d = new Date(endDate);
       d.setDate(d.getDate() - (safeDays - 1 - i));
       d.setHours(0, 0, 0, 0);
-      
+
       const existing = inputData?.find(item => {
         const itemDate = new Date(item.day);
         itemDate.setHours(0, 0, 0, 0);
         return itemDate.getTime() === d.getTime();
       });
-      
+
       if (existing) return existing;
-      
+
       return { day: d.toISOString(), clicks: 0, orders: 0, revenue: 0 };
     });
   }, [inputData, days]);
 
-  const labelStep = useMemo(() => {
+  const desktopLabelStep = useMemo(() => {
     if (days <= 7) return 1
     if (days <= 31) return 5
     if (days <= 90) return 10
     if (days <= 365) return 30
     return 30
+  }, [days])
+
+  const mobileLabelStep = useMemo(() => {
+    if (days <= 7) return 2
+    if (days <= 31) return 10
+    if (days <= 90) return 30
+    if (days <= 365) return 120 // ~4 months
+    return 120
   }, [days])
 
   const maxClicks = Math.max(...data.map((d) => d.clicks), 50)
@@ -187,91 +195,115 @@ function MainTrendChart({ data: inputData, height = '300px', days = 7, activeSer
     y: 100 - (d.orders / maxOrders) * 80 - 10,
   }))
 
-  const getLinearPath = (points: { x: number; y: number }[]) => {
-    if (points.length < 2) return "";
-    let d = `M ${points[0].x} ${points[0].y}`;
-    for (let i = 1; i < points.length; i++) {
-      d += ` L ${points[i].x} ${points[i].y}`;
-    }
-    return d;
-  };
+  // Use actual pixel dimensions for cross-browser SVG rendering (fixes mobile bug)
+  const chartRef = useRef<HTMLDivElement>(null)
+  const [chartSize, setChartSize] = useState({ w: 0, h: 0 })
 
-  const clickPath = getLinearPath(clickPoints);
-  const revenuePath = getLinearPath(revenuePoints);
-  const orderPath = getLinearPath(orderPoints);
+  useEffect(() => {
+    const el = chartRef.current
+    if (!el) return
+    const update = () => {
+      const { width, height } = el.getBoundingClientRect()
+      setChartSize({ w: Math.round(width), h: Math.round(height) })
+    }
+    update()
+    const ro = new ResizeObserver(update)
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [])
 
   return (
-    <div className="relative min-h-[210px] w-full px-6 pt-4 sm:min-h-0 sm:px-12" style={{ height }}>
-      <div className="absolute inset-x-6 top-4 bottom-5 flex flex-col justify-between pointer-events-none sm:inset-x-12">
+    <div className="relative w-full pl-8 pr-12 pt-4 sm:pl-12 sm:pr-14" style={{ height }}>
+      <div className="absolute left-8 right-12 top-4 bottom-5 flex flex-col justify-between pointer-events-none sm:left-12 sm:right-14">
         {[0, 1, 2, 3, 4, 5].map((i) => (
           <div key={i} className="w-full border-b border-black/[0.03]" />
         ))}
       </div>
 
-      <div className="absolute left-0 top-4 bottom-5 flex w-6 flex-col justify-between py-1 pr-1 text-right text-[8px] font-bold text-black/30 sm:w-10 sm:pr-2 sm:text-[10px]">
+      <div className="absolute left-0 top-4 bottom-5 flex w-8 flex-col justify-between py-1 pr-1 text-right text-[8px] font-bold text-black/30 sm:w-12 sm:pr-2 sm:text-[10px]">
         {activeSeries.clicks && [maxClicks, maxClicks * 0.8, maxClicks * 0.6, maxClicks * 0.4, maxClicks * 0.2, 0].map((v, i) => (
           <span key={i}>{Math.round(v)}</span>
         ))}
       </div>
-      <div className="absolute right-0 top-4 bottom-5 flex w-6 flex-col justify-between py-1 pl-1 text-left text-[8px] font-bold text-black/30 sm:w-10 sm:pl-2 sm:text-[10px]">
+      <div className="absolute right-0 top-4 bottom-5 flex w-12 flex-col justify-between py-1 pl-1 text-left text-[8px] font-bold text-black/30 sm:w-14 sm:pl-2 sm:text-[10px]">
         {activeSeries.revenue && [maxRevenue, maxRevenue * 0.8, maxRevenue * 0.6, maxRevenue * 0.4, maxRevenue * 0.2, 0].map((v, i) => (
           <span key={i}>{formatNumber(v)}</span>
         ))}
       </div>
 
-      <div className="absolute inset-x-6 top-4 bottom-5 sm:inset-x-12">
-        <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="h-full w-full overflow-visible">
-          {activeSeries.clicks && (
-            <path
-              d={clickPath}
-              fill="none"
-              stroke="#ea580c"
-              strokeWidth="2.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              vectorEffect="non-scaling-stroke"
-            />
-          )}
-          {activeSeries.revenue && (
-            <path
-              d={revenuePath}
-              fill="none"
-              stroke="#172554"
-              strokeWidth="2.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              vectorEffect="non-scaling-stroke"
-            />
-          )}
-          {activeSeries.orders && (
-            <path
-              d={orderPath}
-              fill="none"
-              stroke="#0d9488"
-              strokeWidth="2.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              vectorEffect="non-scaling-stroke"
-            />
-          )}
+      <div ref={chartRef} className="absolute left-8 right-12 top-4 bottom-5 sm:left-12 sm:right-14">
+        <svg width={chartSize.w} height={chartSize.h} className="block" style={{ overflow: 'visible' }}>
+          {(() => {
+            // Map data y values (10-90% range from *80-10 formula) to pixel positions
+            // matching the visual center of labels (py-1=4px padding + half line-height≈6px)
+            const PY = 10 // matches py-1 on label containers
+            const toY = (yPct: number) => PY + (yPct - 10) / 80 * (chartSize.h - 2 * PY)
+            const toX = (xPct: number) => xPct / 100 * chartSize.w
+            return (
+              <>
+                {activeSeries.clicks && chartSize.h > 0 && clickPoints.map((p, i) => i > 0 && (
+                  <line
+                    key={`click-${i}`}
+                    x1={toX(clickPoints[i - 1].x)}
+                    y1={toY(clickPoints[i - 1].y)}
+                    x2={toX(p.x)}
+                    y2={toY(p.y)}
+                    stroke="#ea580c"
+                    strokeWidth="2.5"
+                    strokeLinecap="round"
+                  />
+                ))}
+                {activeSeries.revenue && chartSize.h > 0 && revenuePoints.map((p, i) => i > 0 && (
+                  <line
+                    key={`rev-${i}`}
+                    x1={toX(revenuePoints[i - 1].x)}
+                    y1={toY(revenuePoints[i - 1].y)}
+                    x2={toX(p.x)}
+                    y2={toY(p.y)}
+                    stroke="#172554"
+                    strokeWidth="2.5"
+                    strokeLinecap="round"
+                  />
+                ))}
+                {activeSeries.orders && chartSize.h > 0 && orderPoints.map((p, i) => i > 0 && (
+                  <line
+                    key={`ord-${i}`}
+                    x1={toX(orderPoints[i - 1].x)}
+                    y1={toY(orderPoints[i - 1].y)}
+                    x2={toX(p.x)}
+                    y2={toY(p.y)}
+                    stroke="#0d9488"
+                    strokeWidth="2.5"
+                    strokeLinecap="round"
+                  />
+                ))}
+              </>
+            )
+          })()}
         </svg>
       </div>
 
-      <div className="absolute bottom-2 inset-x-6 sm:inset-x-12 h-4 pointer-events-none">
+      <div className="absolute bottom-2 left-8 right-12 sm:left-12 sm:right-14 h-4 pointer-events-none">
         {data.map((d, i) => {
           const isLast = i === data.length - 1
-          const showLabel = i % labelStep === 0 || isLast
-          if (!showLabel) return null
+          const showDesktop = i % desktopLabelStep === 0 || isLast
+          const showMobile = i % mobileLabelStep === 0 || isLast
+          
+          if (!showDesktop && !showMobile) return null
 
           let transform = "translateX(-50%)"
           if (i === 0) transform = "translateX(0)"
           else if (isLast) transform = "translateX(-100%)"
 
+          let visibilityClass = ""
+          if (showDesktop && !showMobile) visibilityClass = "hidden sm:block"
+          else if (!showDesktop && showMobile) visibilityClass = "sm:hidden"
+
           return (
-            <div 
-              key={i} 
-              className="absolute text-[10px] font-bold text-black/30 whitespace-nowrap"
-              style={{ 
+            <div
+              key={i}
+              className={`absolute text-[10px] font-bold text-black/30 whitespace-nowrap ${visibilityClass}`}
+              style={{
                 left: `${(i / Math.max(data.length - 1, 1)) * 100}%`,
                 transform
               }}
@@ -300,11 +332,11 @@ function DoughnutChart({ value, total = 100 }: { value: number; total?: number }
 
   return (
     <div className="relative flex items-center justify-center">
-      <svg className="h-44 w-44 -rotate-90 sm:h-52 sm:w-52">
-        <circle cx="104" cy="104" r={radius} fill="transparent" stroke="rgba(0,0,0,0.05)" strokeWidth="16" />
+      <svg className="h-44 w-44 -rotate-90 sm:h-52 sm:w-52" viewBox="0 0 176 176" width="100%" height="100%">
+        <circle cx="88" cy="88" r={radius} fill="transparent" stroke="rgba(0,0,0,0.05)" strokeWidth="16" />
         <motion.circle
-          cx="104"
-          cy="104"
+          cx="88"
+          cy="88"
           r={radius}
           fill="transparent"
           stroke="#8B5CF6"
@@ -326,7 +358,7 @@ function DoughnutChart({ value, total = 100 }: { value: number; total?: number }
 
 function RankingList({ title, items, type = 'product' }: { title: string; items: any[]; type?: 'influencer' | 'product' | 'campaign' }) {
   return (
-    <div className="flex min-h-[320px] flex-col rounded-2xl border-[3px] border-black bg-white p-4 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] sm:min-h-[370px] sm:p-6 sm:shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
+    <div className="flex min-h-[320px] flex-col min-w-0 rounded-2xl border-[3px] border-black bg-white p-4 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] sm:min-h-[370px] sm:p-6 sm:shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
       <div className="mb-5 flex items-center justify-between gap-3 sm:mb-6">
         <h3 className="flex items-center gap-2 text-sm font-black uppercase tracking-tight text-black">
           {title}
@@ -427,7 +459,7 @@ function AffiliateStatusCard({
 }) {
   const healthy = Boolean(trackingId)
   return (
-    <div className="rounded-2xl border-[3px] border-black bg-white p-4 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] sm:p-6 sm:shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
+    <div className="min-w-0 rounded-2xl border-[3px] border-black bg-white p-4 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] sm:p-6 sm:shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h3 className="flex items-center gap-2 text-sm font-black uppercase tracking-tight text-black">
@@ -467,7 +499,7 @@ function AffiliateLinksTable({ data }: { data: AffiliateLinksData | undefined })
   const rows = data?.products || []
 
   return (
-    <div className="rounded-2xl border-[3px] border-black bg-white p-4 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] sm:p-6 sm:shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
+    <div className="min-w-0 rounded-2xl border-[3px] border-black bg-white p-4 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] sm:p-6 sm:shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
       <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <h3 className="text-sm font-black uppercase tracking-tight text-black">Affiliate Links</h3>
@@ -587,29 +619,31 @@ export default function InfluencerAnalyticsDashboard() {
 
   return (
     <div className="min-h-screen bg-[#F9F8F4] pt-24 pb-12">
-      <div className="mx-auto max-w-full overflow-hidden px-3 sm:px-10 lg:px-16">
+      <div className="mx-auto w-full max-w-full overflow-x-clip px-3 sm:px-10 lg:px-16">
         <div className="mb-6 flex flex-col gap-4 sm:mb-8 sm:flex-row sm:items-center sm:justify-between sm:gap-6">
-          <div>
-            <h1 className="text-3xl font-black uppercase tracking-tighter text-black sm:text-4xl">
+          <div className="min-w-0">
+            <h1 className="truncate text-3xl font-black uppercase tracking-tighter text-black sm:text-4xl">
               Welcome back, <span className="text-blue-500">{data?.viewer?.name || 'Creator'}</span>!
             </h1>
             <p className="mt-2 text-sm font-black uppercase tracking-widest text-black/40">Performance Overview & Strategic Insights</p>
           </div>
-          <div className="grid grid-cols-5 gap-1 rounded-2xl border-[3px] border-black bg-white p-1.5 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] sm:flex sm:items-center sm:gap-2 sm:p-2">
-            {[7, 30, 90, 365].map((d) => (
-              <button
-                key={d}
-                onClick={() => setDays(d)}
-                className={`rounded-xl px-2 py-2 text-[10px] font-black uppercase transition-all sm:px-4 ${days === d ? 'bg-black text-white' : 'text-black/40 hover:bg-black/5'
-                  }`}
-              >
-                {d === 365 ? '365D' : `${d}D`}
-              </button>
-            ))}
+          <div className="flex flex-wrap items-center justify-between gap-1 rounded-2xl border-[3px] border-black bg-white p-1.5 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] sm:gap-2 sm:p-2">
+            <div className="flex flex-1 items-center justify-between sm:justify-start gap-1">
+              {[7, 30, 90, 365].map((d) => (
+                <button
+                  key={d}
+                  onClick={() => setDays(d)}
+                  className={`rounded-xl px-2 py-2 text-[10px] font-black uppercase transition-all sm:px-4 ${days === d ? 'bg-black text-white' : 'text-black/40 hover:bg-black/5'
+                    }`}
+                >
+                  {d === 365 ? '365D' : `${d}D`}
+                </button>
+              ))}
+            </div>
             <div className="hidden sm:mx-1 sm:block sm:h-6 sm:w-[2px] sm:bg-black" />
             <button
               onClick={() => refetch()}
-              className="flex items-center justify-center gap-1 rounded-xl border-2 border-black bg-emerald-400 px-2 py-2 text-[10px] font-black uppercase shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-none sm:gap-1.5 sm:px-4"
+              className="flex items-center justify-center gap-1 rounded-xl border-2 border-black bg-emerald-400 px-3 py-2 text-[10px] font-black uppercase shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-none sm:gap-1.5 sm:px-4 shrink-0"
             >
               <RefreshCw className={`h-3.5 w-3.5 ${isFetching ? 'animate-spin' : ''}`} />
               Sync
@@ -624,8 +658,8 @@ export default function InfluencerAnalyticsDashboard() {
         </div>
 
         <div className="mb-6 grid items-start gap-4 sm:gap-6 lg:grid-cols-3">
-          <div className="flex flex-col gap-4 sm:gap-6 lg:col-span-2">
-            <div className="flex flex-col rounded-2xl border-[3px] border-black bg-white p-4 pb-4 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] sm:p-6 sm:shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
+          <div className="flex flex-col gap-4 sm:gap-6 lg:col-span-2 min-w-0">
+            <div className="flex flex-col min-w-0 rounded-2xl border-[3px] border-black bg-white p-4 pb-4 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] sm:p-6 sm:shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
               <div className="mb-5 flex flex-col gap-3 sm:mb-8 sm:flex-row sm:items-center sm:justify-between">
                 <h3 className="flex items-center gap-2 text-sm font-black uppercase tracking-tight text-black">
                   <BarChart3 className="h-5 w-5" />
@@ -633,21 +667,21 @@ export default function InfluencerAnalyticsDashboard() {
                 </h3>
                 <div className="flex flex-wrap items-center gap-3 sm:gap-6">
                   <div className="flex flex-wrap items-center gap-3 sm:gap-4">
-                    <div 
+                    <div
                       className={`flex items-center gap-2 cursor-pointer transition-opacity hover:opacity-80 ${!activeSeries.clicks ? 'opacity-40' : ''}`}
                       onClick={() => setActiveSeries(prev => ({ ...prev, clicks: !prev.clicks }))}
                     >
                       <div className="h-3 w-3 rounded-full border-2 border-black bg-[#ea580c]" />
                       <span className="text-[10px] font-black uppercase tracking-wider text-black/40">Clicks</span>
                     </div>
-                    <div 
+                    <div
                       className={`flex items-center gap-2 cursor-pointer transition-opacity hover:opacity-80 ${!activeSeries.revenue ? 'opacity-40' : ''}`}
                       onClick={() => setActiveSeries(prev => ({ ...prev, revenue: !prev.revenue }))}
                     >
                       <div className="h-3 w-3 rounded-full border-2 border-black bg-[#172554]" />
                       <span className="text-[10px] font-black uppercase tracking-wider text-black/40">Earnings</span>
                     </div>
-                    <div 
+                    <div
                       className={`flex items-center gap-2 cursor-pointer transition-opacity hover:opacity-80 ${!activeSeries.orders ? 'opacity-40' : ''}`}
                       onClick={() => setActiveSeries(prev => ({ ...prev, orders: !prev.orders }))}
                     >
@@ -656,7 +690,7 @@ export default function InfluencerAnalyticsDashboard() {
                     </div>
                   </div>
                   <div className="relative">
-                    <button 
+                    <button
                       onClick={() => setIsChartDaysDropdownOpen(!isChartDaysDropdownOpen)}
                       className="flex items-center gap-1.5 rounded-lg border-2 border-black bg-yellow-300 px-3 py-1.5 text-[10px] font-black uppercase shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-none"
                     >
@@ -682,7 +716,7 @@ export default function InfluencerAnalyticsDashboard() {
                   </div>
                 </div>
               </div>
-              <div className="h-[230px] sm:h-[280px]">
+              <div className="h-[250px] w-full shrink-0 sm:h-[280px]">
                 <MainTrendChart data={data?.series || []} days={days} height="100%" activeSeries={activeSeries} />
               </div>
             </div>
@@ -694,7 +728,7 @@ export default function InfluencerAnalyticsDashboard() {
 
             <AffiliateLinksTable data={affiliateLinks} />
 
-            <div className="relative overflow-hidden rounded-2xl border-[3px] border-black bg-white p-4 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] sm:p-6 sm:shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
+            <div className="relative min-w-0 overflow-hidden rounded-2xl border-[3px] border-black bg-white p-4 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] sm:p-6 sm:shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
               <h3 className="flex items-center gap-2 text-sm font-black uppercase tracking-tight text-black">
                 <Globe className="h-4 w-4" />
                 Country Split
@@ -705,8 +739,8 @@ export default function InfluencerAnalyticsDashboard() {
             </div>
           </div>
 
-          <div className="flex flex-col gap-4 sm:gap-6">
-            <div className="flex flex-col rounded-2xl border-[3px] border-black bg-white p-4 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] sm:p-6 sm:shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
+          <div className="flex flex-col gap-4 sm:gap-6 min-w-0">
+            <div className="flex flex-col min-w-0 rounded-2xl border-[3px] border-black bg-white p-4 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] sm:p-6 sm:shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
               <h3 className="mb-4 text-sm font-black uppercase tracking-tight text-black">Traffic Quality</h3>
               <div className="flex flex-1 flex-col items-center justify-center py-4">
                 <DoughnutChart value={kpis.cvr || 0} />
@@ -735,7 +769,7 @@ export default function InfluencerAnalyticsDashboard() {
               </div>
             </div>
 
-            <div className="flex h-fit flex-col rounded-2xl border-[3px] border-black bg-white p-4 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] sm:p-6 sm:shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
+            <div className="flex h-fit flex-col min-w-0 rounded-2xl border-[3px] border-black bg-white p-4 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] sm:p-6 sm:shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
               <h3 className="mb-6 text-sm font-black uppercase tracking-tight text-black">Quick Insights</h3>
               <div className="flex flex-col gap-4">
                 <QuickInsightRow label="Total Clicks" value={formatNumber(kpis.clicks)} subValue="33.3% ↑" data={[30, 45, 35, 50, 48, 65, 80]} color="#10B981" days={days} />
