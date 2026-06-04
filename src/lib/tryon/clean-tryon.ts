@@ -61,7 +61,7 @@ function readGuardThreshold(name: string, fallback: number): number {
 const STRICT_FACE_IDENTITY_MIN = readGuardThreshold('TRYON_STRICT_FACE_IDENTITY_MIN', 84)
 const STRICT_BODY_CONSISTENCY_MIN = readGuardThreshold('TRYON_STRICT_BODY_CONSISTENCY_MIN', 78)
 const STRICT_GARMENT_FIDELITY_MIN = readGuardThreshold('TRYON_STRICT_GARMENT_FIDELITY_MIN', 80)
-const STRICT_COMPOSITION_QUALITY_MIN = readGuardThreshold('TRYON_STRICT_COMPOSITION_QUALITY_MIN', 70)
+const STRICT_COMPOSITION_QUALITY_MIN = readGuardThreshold('TRYON_STRICT_COMPOSITION_QUALITY_MIN', 78)
 const STRICT_BACKGROUND_INTEGRITY_MIN = readGuardThreshold('TRYON_STRICT_BACKGROUND_INTEGRITY_MIN', 68)
 
 export interface CleanTryOnInput {
@@ -421,7 +421,7 @@ export async function runCleanTryOn(input: CleanTryOnInput): Promise<CleanTryOnR
       durationMs: 0,
       selections: fallbackPhotos.map((p) => ({
         photoId: p.id,
-        prompt: `Edit image 1 by changing only the target garment region to match the garment shown in image 2 — ${desc}. Preserve the person's face, hair, skin tone, body, pose, framing, lighting, background, and all non-target clothing exactly as in image 1. Match the garment's exact color, pattern, material, texture, and construction details from image 2 with no reinterpretation. Photorealistic.`,
+        prompt: `Edit image 1 by changing only the target garment region to match the garment shown in image 2 — ${desc}. Preserve the person's face, hair, skin tone, body, pose, framing, camera distance, subject scale, visible body crop, lighting, background, and all non-target clothing exactly as in image 1. Do not zoom in, crop tighter, enlarge the head/torso, or recenter the subject. Match the garment's exact color, pattern, material, texture, and construction details from image 2 with no reinterpretation. Photorealistic.`,
         reasoning: 'Rules-based fallback — orchestrator unavailable',
       })),
     }
@@ -564,12 +564,13 @@ export async function runCleanTryOn(input: CleanTryOnInput): Promise<CleanTryOnR
       `${sel.prompt} ` +
       `This is a clothing swap only, not a restyle, retouch, or portrait regeneration. ` +
       `Keep the person's face, eyes, eyebrows, nose, lips, jawline, facial hair, hairstyle, skin tone, ears, earrings, glasses, watch, bracelets, body proportions, and expression identical to image 1; ` +
-      `keep the background, camera angle, lighting and crop unchanged. ` +
+      `keep the background, camera angle, camera distance, subject scale, lighting and crop unchanged. ` +
       `${swapRegionLock} ` +
       // FRAMING LOCK — without this FLUX-2 [pro] re-centres on the face,
       // shrinking the visible torso and producing head-heavy outputs where
       // the new garment barely shows. Pin the head-to-body ratio to image 1.
       `Critical framing rule: do NOT zoom in, do NOT recompose the shot, do NOT enlarge the head. ` +
+      `Do NOT crop tighter, move the camera closer, recenter the subject, stretch the body, or change the visible frame boundaries. ` +
       `The head must occupy the SAME percentage of the frame as in image 1 — no bigger. ` +
       `Show exactly the same amount of body that is visible in image 1: if the waist is visible in image 1 it must be visible in the output; if full body is shown, keep it full body. ` +
       `Preserve the original head-to-torso size ratio precisely. ` +
@@ -605,7 +606,7 @@ export async function runCleanTryOn(input: CleanTryOnInput): Promise<CleanTryOnR
           garmentImageBase64: cleanedGarment,
           faceCropBase64: hasFace ? faceCropBase64 : undefined,
           prompt: fluxPrompt,
-          aspectRatio: input.aspectRatio || '4:5',
+          aspectRatio: undefined,
           // Default to the Flash image model: it has ~10 RPM/key + higher
           // concurrency, so 3 parallel try-on slots on a single Gemini key
           // succeed. The Pro image model is ~2 RPM/key and rate-limits the
@@ -748,7 +749,7 @@ export async function runCleanTryOn(input: CleanTryOnInput): Promise<CleanTryOnR
           garmentImageBase64: cleanedGarment,
           faceCropBase64: hasFace ? faceCropBase64 : undefined,
           prompt: fluxPrompt,
-          aspectRatio: input.aspectRatio || '4:5',
+          aspectRatio: undefined,
           model: 'gemini-3.1-flash-image-preview',
           garmentIntel: intel,
           engineOverride: 'gemini',
@@ -791,7 +792,7 @@ export async function runCleanTryOn(input: CleanTryOnInput): Promise<CleanTryOnR
   const attemptedPhotoIds = new Set(initialSelections.map((selection) => selection.photoId))
   const fallbackPromptSeed =
     orchestrated.selections[0]?.prompt ||
-    `Change the clothing on the person in image 1 to the garment shown in image 2. Keep the person's identity, face, pose, body, background, lighting, and crop the same. Match garment color, fit, pattern, symbol, logo, texture, and construction exactly. Photorealistic.`
+    `Change the clothing on the person in image 1 to the garment shown in image 2. Keep the person's identity, face, pose, body, background, lighting, camera distance, subject scale, visible body crop, and crop boundaries the same. Do not zoom in, crop tighter, enlarge the head/torso, or recenter the subject. Match garment color, fit, pattern, symbol, logo, texture, and construction exactly. Photorealistic.`
   const fallbackReasoningSeed = 'Recovery source photo after a guarded output failed'
   const recoverySelections = [
     ...orchestrated.selections.slice(targetOutputCount),

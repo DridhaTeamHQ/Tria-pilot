@@ -417,6 +417,14 @@ function hasCriticalLimbPlacementIssue(issues: string[] = [], reasoning = ''): b
   )
 }
 
+function hasCriticalFramingScaleIssue(issues: string[] = [], reasoning = ''): boolean {
+  const text = [...issues, reasoning].join(' ').toLowerCase()
+  return (
+    /\b(zoom|zoomed|crop|cropped|cropping|close-up|closeup|reframe|reframed|framing|camera|distance|scale|scaled|enlarged|larger|head|torso|body|waist|legs|full-body|full body|recenter|recentred)\b/.test(text) &&
+    /\b(tight|tighter|changed|different|missing|cut|cutoff|cut-off|larger|bigger|enlarged|zoomed|recenter|recentred|closer|close|scale|ratio|body|head|torso|waist|legs)\b/.test(text)
+  )
+}
+
 interface StrictOutputValidationResult {
   qualityAssessment: IdentityCompositionAssessment | null
   garmentValidation: GarmentValidationResult | null
@@ -1259,7 +1267,7 @@ async function handlePresetlessTryOnRequest(params: {
         // never threaded into the generation calls. Major identity-drift fix.
         faceCropBase64,
         prompt: orchestratedPrompt || smartPrompt,
-        aspectRatio: payload.aspectRatio || '4:5',
+        aspectRatio: undefined,
         model: directRenderModel,
         garmentIntel,
         strictGarmentProfile,
@@ -1363,6 +1371,18 @@ async function handlePresetlessTryOnRequest(params: {
                     `Try-on output rejected: impossible hand/arm placement (${validation.issues.join(', ') || validation.reasoning})`
                   )
                   if (isDev) console.warn(`ðŸ” Slot ${slotIdx + 1} ${strategy.label} rejected for hand/arm placement (${validation.score}/100): ${validation.issues.join(', ') || validation.reasoning}`)
+                  if (i < strategies.length - 1) {
+                    await new Promise((r) => setTimeout(r, 400))
+                    continue
+                  }
+                  throw criticalQualityErr
+                }
+                const hasCriticalFramingIssue = hasCriticalFramingScaleIssue(validation.issues, validation.reasoning)
+                if (hasCriticalFramingIssue) {
+                  criticalQualityErr = new Error(
+                    `Try-on output rejected: framing/scale changed (${validation.issues.join(', ') || validation.reasoning})`
+                  )
+                  if (isDev) console.warn(`🔁 Slot ${slotIdx + 1} ${strategy.label} rejected for framing/scale drift (${validation.score}/100): ${validation.issues.join(', ') || validation.reasoning}`)
                   if (i < strategies.length - 1) {
                     await new Promise((r) => setTimeout(r, 400))
                     continue

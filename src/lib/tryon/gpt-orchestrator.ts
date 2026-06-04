@@ -105,13 +105,14 @@ Image 2 (the product image) shows the target clothing. Treat it as the literal p
 
 Write a simple, direct prompt for each photo using this exact structure:
 
-  "Edit image 1 by changing the clothing to match the garment shown in image 2. The garment is <1-sentence product description: type, colors, pattern, fit>. Preserve the person's identity, pose, framing, lighting, and background exactly as in image 1 — only the clothing changes. The garment should appear naturally fitted with realistic fabric drape. Photorealistic fashion photography."
+  "Edit image 1 by changing the clothing to match the garment shown in image 2. The garment is <1-sentence product description: type, colors, pattern, fit>. Preserve the person's identity, pose, framing, camera distance, subject scale, visible body crop, lighting, and background exactly as in image 1 — only the clothing changes. The garment should appear naturally fitted with realistic fabric drape. Photorealistic fashion photography."
 
 Rules:
 - Keep it SHORT — under 500 characters total.
 - Use NEUTRAL language: "the person", "the subject" — NOT "the woman", "her body".
 - Be specific about the new garment (use the productText / garment summary).
-- Always include identity preservation ("preserve the person's identity, pose, framing, lighting, background").
+- Always include identity preservation ("preserve the person's identity, pose, framing, camera distance, subject scale, visible body crop, lighting, background").
+- Always forbid zooming/reframing: no tighter crop, no larger head/torso, no changed body scale, no recentering.
 - Do NOT mention regions, coverage, top vs bottom, or "remove the existing X". Just "change the clothing to match this garment".
 - Do NOT use anatomical language ("breasts", "chest", "thighs", "body parts"). Just "clothing" and "garment".
 

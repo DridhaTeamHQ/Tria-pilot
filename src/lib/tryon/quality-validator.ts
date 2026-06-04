@@ -9,6 +9,8 @@
  *   - Garment looks pasted/overlaid (sticker effect, not naturally worn)
  *   - Arms/hands are moved, duplicated, misplaced, or unnaturally laid
  *     across the torso/garment
+ *   - Camera crop, subject scale, or visible body area drifts from the
+ *     reference photo
  *
  * Returns null on any error so the caller treats it as "couldn't validate"
  * rather than as a failure — never blocks the pipeline on validator issues.
@@ -46,6 +48,7 @@ Score the OUTPUT (image 3) against these criteria:
 4. REALISM — looks like a real photo? No overlay/sticker artifacts, no distorted body, no melted face?
 
 5. ANATOMY / LIMB PLACEMENT - arms and hands must be anatomically plausible and must preserve the reference pose. Hands must not appear in impossible places, float over the chest, merge into the garment, duplicate, or cover the torso unless they already do so in image 1.
+6. FRAMING / SCALE LOCK - image 3 must preserve image 1's camera distance, crop, subject placement, head-to-body ratio, visible body area, and background boundaries. The person must not look zoomed-in, enlarged, recentered, stretched, or cropped tighter than image 1.
 
 Return ONLY JSON, no markdown:
 {
@@ -64,6 +67,7 @@ Be STRICT. Fail if:
 - Major artifacts (melted face, extra limbs, distorted body)
 - Any misplaced, floating, duplicated, merged, or impossible hand/arm
 - A hand or forearm newly crossing/covering the torso or garment when that was not present in image 1
+- Any zoom-in, tighter crop, larger head/torso, changed body scale, changed camera distance, recentered subject, or missing waist/legs/body area that was visible in image 1
 
 Pass if: same person, wearing the new garment naturally, non-swap regions preserved, looks photorealistic. Score reflects how clean the swap is (90+ = excellent, 70-89 = acceptable, <70 = fail).`
 
@@ -126,7 +130,7 @@ export async function validateTryOnQuality(params: {
     const result: QualityValidationResult = {
       valid: parsed.valid === true,
       score: typeof parsed.score === 'number' ? Math.max(0, Math.min(100, parsed.score)) : 0,
-      issues: Array.isArray(parsed.issues) ? parsed.issues.slice(0, 5).map(String) : [],
+      issues: Array.isArray(parsed.issues) ? parsed.issues.slice(0, 8).map(String) : [],
       reasoning: String(parsed.reasoning || '').slice(0, 200),
       durationMs: Date.now() - t0,
     }

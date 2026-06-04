@@ -83,7 +83,11 @@ export async function assessIdentityAndComposition(params: {
           '- Facial structure must stay effectively unchanged: jawline width, cheek shape, chin shape, nose bridge, nose tip, lip contour, eye shape, and brow position should look like the actual person, not a similar-looking model.',
           '- "Close" is not good enough. If the generated face looks beautified, slimmed, younger, smoother, more symmetrical, or slightly recast, score faceIdentity low.',
           '- Body consistency means same build, shoulder width, torso width, limb thickness, and natural proportions.',
-          '- Composition quality means framing, balance, depth structure, and subject placement feel photographic and intentional.',
+          '- Body consistency means the person must not become wider, slimmer, taller, shorter, stretched, compressed, or subtly resized by camera/crop changes.',
+          '- Composition quality means framing, camera distance, crop boundaries, head-to-body ratio, visible body area, balance, depth structure, and subject placement match the source image.',
+          '- The generated output must preserve the source photo crop: if the source is full-body, output stays full-body; if waist/legs are visible, they remain visible; if the head occupies 12% of frame height, it must not become 25%.',
+          '- Penalize zoomed-in outputs harshly. A closer camera, larger head/torso, tighter crop, changed subject scale, recentered subject, or missing body area is a composition failure even when the face identity is good.',
+          '- If framing/scale drift makes the body appear different, score both bodyConsistency and compositionQuality low.',
           '- Background integrity means no Gemini blur haze, no smear, no fake bokeh masking, and no pasted subject edges.',
           '- Garment fidelity means the clothing in the generated image matches the garment reference in type, collar, sleeves, buttons, hem length, fit, color, pattern, and fabric behavior.',
           '- If an expected logo, symbol, emblem, badge, wordmark, stars, chest graphic, or printed mark is provided, it must be visible in the generated image with similar placement, color, size, and recognizable shape.',
@@ -111,7 +115,7 @@ export async function assessIdentityAndComposition(params: {
               'Image 2 is an optional face crop from the source identity.',
               'Image 3 is the generated result to evaluate.',
               'Image 4 is an optional garment reference.',
-              'Check for face drift, body reshaping, garment mismatch, weak composition, mushy backgrounds, generic blur haze, and sticker-like separation.',
+              'Check for face drift, body reshaping, garment mismatch, weak composition, zoom-in/crop drift, changed subject scale, changed head-to-body ratio, mushy backgrounds, generic blur haze, and sticker-like separation.',
             ].join('\n'),
           },
           {
@@ -243,6 +247,7 @@ export async function assessIdentityAndComposition(params: {
     criticalFitMismatch ||
     scores.faceIdentity < 78 ||
     scores.bodyConsistency < 74 ||
+    scores.compositionQuality < 76 ||
     scores.garmentFidelity < 76 ||
     minScore < 66 ||
     (avgScore < 72 && majorIssues.length >= 2)

@@ -137,12 +137,12 @@ function buildSimpleFluxPrompt(
 
   // BFL pattern: "Change <region> to <garment>, keep <preserved> exactly the same"
   if (isFull) {
-    return `Change the person's outfit to the ${desc} shown in image 2. Keep the same face, hair, skin tone, body proportions, pose, arm positions, hand placement, sunglasses, accessories, framing, and background exactly as image 1. Do not move hands onto the torso or garment.${ctx}`.slice(0, 700)
+    return `Change the person's outfit to the ${desc} shown in image 2. Keep the same face, hair, skin tone, body proportions, pose, arm positions, hand placement, sunglasses, accessories, framing, camera distance, subject scale, visible body crop, and background exactly as image 1. Do not zoom in or move hands onto the torso or garment.${ctx}`.slice(0, 800)
   }
   if (isLower) {
-    return `Change the person's lower-body garment to the ${desc} shown in image 2. Keep the same top, face, hair, skin tone, body proportions, arms, hand placement, sunglasses, accessories, pose, framing, and background exactly as image 1. Do not move hands onto the torso or garment.${ctx}`.slice(0, 700)
+    return `Change the person's lower-body garment to the ${desc} shown in image 2. Keep the same top, face, hair, skin tone, body proportions, arms, hand placement, sunglasses, accessories, pose, framing, camera distance, subject scale, visible body crop, and background exactly as image 1. Do not zoom in or move hands onto the torso or garment.${ctx}`.slice(0, 800)
   }
-  return `Change the person's upper-body garment to the ${desc} shown in image 2. Keep the same pants or bottom-wear, shoes, face, hair, skin tone, body proportions, hands, arm positions, sunglasses, accessories, pose, framing, and background exactly as image 1. Do not move hands onto the torso or garment.${ctx}`.slice(0, 700)
+  return `Change the person's upper-body garment to the ${desc} shown in image 2. Keep the same pants or bottom-wear, shoes, face, hair, skin tone, body proportions, hands, arm positions, sunglasses, accessories, pose, framing, camera distance, subject scale, visible body crop, and background exactly as image 1. Do not zoom in or move hands onto the torso or garment.${ctx}`.slice(0, 800)
 }
 
 function buildFluxClothingSwapPrompt(
@@ -153,7 +153,7 @@ function buildFluxClothingSwapPrompt(
   // No-intel fast path — BFL "change X to Y, keep Z same" pattern
   if (!garmentIntel && !strictProfile) {
     const ctx = userContext ? ` ${userContext}` : ''
-    return `Change the person's clothing to match the garment shown in image 2. Keep the same face, hair, skin tone, body proportions, pose, framing, lighting, accessories, and background exactly as image 1. Match image 2's color, pattern, and texture precisely.${ctx}`.slice(0, 700)
+    return `Change the person's clothing to match the garment shown in image 2. Keep the same face, hair, skin tone, body proportions, pose, framing, camera distance, subject scale, visible body crop, lighting, accessories, and background exactly as image 1. Do not zoom in, crop tighter, enlarge the head/torso, or recenter the subject. Match image 2's color, pattern, and texture precisely.${ctx}`.slice(0, 900)
   }
 
   // Build the concrete garment description, prioritizing strict profile
@@ -308,19 +308,19 @@ function buildFluxClothingSwapPrompt(
     } else {
       changeClause = `Change the person's outfit to ${garmentDesc} exactly as shown in image 2`
     }
-    preserveClause = `Keep the same face, eyes, eyebrows, nose, lips, jawline, facial hair, hairstyle, skin tone, sunglasses, watch, bracelets, body proportions, pose, arm positions, hand placement, framing, lighting, and background exactly as image 1. Do not move any hand or forearm onto the chest, stomach, or garment unless it is already there in image 1`
+    preserveClause = `Keep the same face, eyes, eyebrows, nose, lips, jawline, facial hair, hairstyle, skin tone, sunglasses, watch, bracelets, body proportions, pose, arm positions, hand placement, framing, camera distance, subject scale, visible body crop, lighting, and background exactly as image 1. Do not zoom in, crop tighter, enlarge the head or torso, recenter the subject, or move any hand or forearm onto the chest, stomach, or garment unless it is already there in image 1`
   } else if (coverage === 'lower_only' || /pants|jeans|skirt|trouser|short/.test(garmentTypeRaw)) {
     const topAside = garmentIntel?.visibleTopInPhoto && garmentIntel.visibleTopInPhoto !== 'none'
       ? ` (image 2 shows the bottom paired with a ${garmentIntel.visibleTopInPhoto} — ignore that top)`
       : ''
     changeClause = `Change the person's lower-body garment to ${garmentDesc} exactly as shown in image 2${topAside}`
-    preserveClause = `Keep the same existing top, face, eyes, eyebrows, nose, lips, jawline, facial hair, hair, skin tone, sunglasses, accessories, torso shape, arm position, hand placement, pose, framing, lighting, and background exactly as image 1. Do not move any hand or forearm onto the chest, stomach, or garment unless it is already there in image 1. The output must show the legs so the new bottom is visible — do not crop above the knee`
+    preserveClause = `Keep the same existing top, face, eyes, eyebrows, nose, lips, jawline, facial hair, hair, skin tone, sunglasses, accessories, torso shape, arm position, hand placement, pose, framing, camera distance, subject scale, visible body crop, lighting, and background exactly as image 1. Do not zoom in, crop tighter, enlarge the head or torso, recenter the subject, or move any hand or forearm onto the chest, stomach, or garment unless it is already there in image 1. The output must show the legs so the new bottom is visible — do not crop above the knee`
   } else {
     const bottomAside = garmentIntel?.visibleBottomInPhoto && garmentIntel.visibleBottomInPhoto !== 'none'
       ? ` (image 2 shows the top paired with ${garmentIntel.visibleBottomInPhoto} — ignore those, the person keeps their own bottom-wear)`
       : ''
     changeClause = `Change the person's upper-body garment to ${garmentDesc} exactly as shown in image 2${bottomAside}`
-    preserveClause = `Keep the same existing pants, bottom-wear, shoes, face, eyes, eyebrows, nose, lips, jawline, facial hair, hair, skin tone, sunglasses, accessories, body proportions, hands, arm positions, pose, framing, lighting, and background exactly as image 1. Do not move any hand or forearm onto the chest, stomach, or garment unless it is already there in image 1`
+    preserveClause = `Keep the same existing pants, bottom-wear, shoes, face, eyes, eyebrows, nose, lips, jawline, facial hair, hair, skin tone, sunglasses, accessories, body proportions, hands, arm positions, pose, framing, camera distance, subject scale, visible body crop, lighting, and background exactly as image 1. Do not zoom in, crop tighter, enlarge the head or torso, recenter the subject, or move any hand or forearm onto the chest, stomach, or garment unless it is already there in image 1`
   }
 
   // Garment specs go inline with the change clause; styling hints + features
@@ -377,7 +377,7 @@ function buildFluxClothingSwapPrompt(
         ? `Only the lower garment may change. Do not redesign the shirt, jacket, face, or hairstyle.`
         : `Keep the exact same person and scene while matching the full outfit from image 2.`,
     `This is a clothing edit only. Do not retouch the face, alter the expression, change hairstyle, add jewelry, add props, or invent new styling elements.`,
-    `The new garment must drape naturally on the person's body with realistic fabric folds and shadows matching the existing lighting — it is being worn, not overlaid. Reproduce the pattern at the correct scale and orientation. No floating hands, duplicate limbs, merged fingers, impossible wrists, or limbs fused into the garment.`,
+    `The new garment must drape naturally on the person's body with realistic fabric folds and shadows matching the existing lighting — it is being worn, not overlaid. Reproduce the pattern at the correct scale and orientation. Preserve the original frame boundaries, head-to-body ratio, camera distance, and amount of visible body exactly. No floating hands, duplicate limbs, merged fingers, impossible wrists, or limbs fused into the garment.`,
     userBit.trim(),
   ].filter((s) => s && s.length > 0).join(' ').slice(0, 1300)
 

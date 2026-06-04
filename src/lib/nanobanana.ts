@@ -1,4 +1,5 @@
 import { GoogleGenAI, type ImageConfig, type GenerateContentConfig, type ContentListUnion } from '@google/genai'
+import sharp from 'sharp'
 import { getGeminiKey } from '@/lib/config/api-keys'
 import { geminiGenerateContent } from '@/lib/gemini/executor'
 
@@ -6,6 +7,37 @@ import { geminiGenerateContent } from '@/lib/gemini/executor'
 const getClient = () => {
   const apiKey = getGeminiKey()
   return new GoogleGenAI({ apiKey })
+}
+
+type GeminiAspectRatio = '1:1' | '2:3' | '3:2' | '3:4' | '4:3' | '4:5' | '5:4' | '9:16' | '16:9' | '21:9'
+
+const GEMINI_ASPECT_RATIOS: Array<{ ratio: GeminiAspectRatio; value: number }> = [
+  { ratio: '1:1', value: 1 },
+  { ratio: '2:3', value: 2 / 3 },
+  { ratio: '3:2', value: 3 / 2 },
+  { ratio: '3:4', value: 3 / 4 },
+  { ratio: '4:3', value: 4 / 3 },
+  { ratio: '4:5', value: 4 / 5 },
+  { ratio: '5:4', value: 5 / 4 },
+  { ratio: '9:16', value: 9 / 16 },
+  { ratio: '16:9', value: 16 / 9 },
+  { ratio: '21:9', value: 21 / 9 },
+]
+
+async function resolveSourceAspectRatio(personBase64: string): Promise<GeminiAspectRatio> {
+  try {
+    const meta = await sharp(Buffer.from(personBase64, 'base64')).metadata()
+    if (!meta.width || !meta.height) return '4:5'
+
+    const sourceRatio = meta.width / meta.height
+    return GEMINI_ASPECT_RATIOS.reduce((best, candidate) =>
+      Math.abs(candidate.value - sourceRatio) < Math.abs(best.value - sourceRatio)
+        ? candidate
+        : best
+    ).ratio
+  } catch {
+    return '4:5'
+  }
 }
 
 export interface TryOnOptions {
@@ -47,7 +79,7 @@ export async function generateTryOn(options: TryOnOptions): Promise<string> {
     accessoryTypes = [],
     prompt,
     model = 'gemini-3.1-flash-image-preview',
-    aspectRatio = '4:5',
+    aspectRatio,
     resolution = '2K',
     sceneDescription,
     lightingDescription,
@@ -579,6 +611,7 @@ export async function generateTryOnDirect(options: DirectTryOnOptions): Promise<
 
   if (!cleanPerson || cleanPerson.length < 100) throw new Error('Invalid person image')
   if (!cleanGarment || cleanGarment.length < 100) throw new Error('Invalid garment image')
+  const resolvedAspectRatio = (aspectRatio || await resolveSourceAspectRatio(cleanPerson)) as GeminiAspectRatio
 
   const requestedModel =
     model ||
@@ -595,7 +628,7 @@ export async function generateTryOnDirect(options: DirectTryOnOptions): Promise<
   // the system instruction (which can drift across attention).
   const contents: ContentListUnion = [
     { inlineData: { data: cleanPerson, mimeType: 'image/jpeg' } } as any,
-    'Image 1: the person. Their pose, face, body, hair, and background must remain identical in the output. Only the clothing changes.',
+    'Image 1: the person. Their pose, face, body, hair, background, camera distance, crop, subject scale, and framing must remain identical in the output. Only the clothing changes.',
     { inlineData: { data: cleanGarment, mimeType: 'image/jpeg' } } as any,
     swapScope.image2Caption,
   ]
@@ -677,6 +710,7 @@ IDENTITY (NON-NEGOTIABLE):
 - If Image 3 is a face close-up, use it as the DEFINITIVE identity anchor — output face must match Image 3 exactly
 - Do NOT generate a different person or alter any facial features
 - Do NOT retouch the face, smooth skin, change expression, alter beard or moustache shape, modify hairstyle, or add/remove earrings, glasses, or jewelry
+- Preserve body scale exactly: same shoulder width, torso width, limb thickness, head-to-body ratio, and visible body crop as Image 1
 
 ${swapScope.replacementBlock}
 - PIXEL-PERFECT match: same color, pattern, texture, collar, sleeves, hem, fit, silhouette, and fabric as Image 2
@@ -696,6 +730,7 @@ FORBIDDEN HALLUCINATIONS:
 - Do NOT change garment color, pattern, or material from what's in Image 2
 - Do NOT replace or reinterpret any logo, embroidery, brand mark, text, crest, or small chest graphic from Image 2
 - Do NOT change the background, pose, framing, or zoom level — only the clothing changes
+- Do NOT zoom in, crop tighter, enlarge the head, enlarge the torso, change camera distance, change focal length, recenter the subject, or alter the amount of body visible. Keep the exact same frame boundaries and subject scale as Image 1
 - Do NOT invent props, accessories, beauty edits, new layers, or styling details that are not already present in Image 1
 - Do NOT copy the product model's companion garments or full styling onto the person when the sold product covers only one region
 - Preserve both arms and both hands exactly from Image 1. Do NOT place a hand or forearm across the chest, stomach, or garment unless it is already in that exact position in Image 1
@@ -703,7 +738,7 @@ FORBIDDEN HALLUCINATIONS:
 
 REALISM: Photorealistic output. Natural skin, realistic fabric drape. No AI smoothing or CGI look.${factSheet}`,
     imageConfig: {
-      aspectRatio,
+      aspectRatio: resolvedAspectRatio,
       personGeneration: 'allow_adult',
       imageSize: resolution,
     } as ImageConfig,
