@@ -1090,7 +1090,7 @@ function TryOnPageContent() {
                 </div>
               ) : outputs.length > 0 ? (
                 <div className="space-y-6">
-                  <div className="mx-auto flex max-w-[680px] flex-wrap items-center justify-between gap-3">
+                  <div className="flex w-full flex-wrap items-center justify-between gap-3">
                     <div className="inline-flex rounded-full border-[3px] border-black bg-white p-1 shadow-[3px_3px_0_0_#000]">
                       {[
                         { key: 'tryon', label: 'Try-On', icon: Sparkles },
@@ -1125,7 +1125,7 @@ function TryOnPageContent() {
                   </div>
                   <div
                     ref={splitContainerRef}
-                    className="relative aspect-[4/5] w-full max-w-[680px] mx-auto overflow-hidden rounded-[24px] border-[4px] border-black bg-[#F9F8F4] shadow-[6px_6px_0_0_#000]"
+                    className="relative aspect-[4/5] w-full overflow-hidden rounded-[24px] border-[4px] border-black bg-[#F9F8F4] shadow-[6px_6px_0_0_#000]"
                     style={{ cursor: resultViewMode === 'split' ? 'col-resize' : 'default' }}
                     onMouseMove={(e) => {
                       if (resultViewMode !== 'split') return
@@ -1180,7 +1180,7 @@ function TryOnPageContent() {
                       <div className="flex h-full items-center justify-center"><AlertTriangle className="h-10 w-10 text-red-500" /></div>
                     )}
                   </div>
-                  <div className="grid grid-cols-3 gap-3 max-w-[680px] mx-auto">
+                  <div className="grid w-full grid-cols-3 gap-3">
                     {outputs.map((output: any, index: number) => {
                       const outputKey = output.referenceImageId || output.imageUrl || output.label || `output-${index}`
                       return (
@@ -1196,7 +1196,7 @@ function TryOnPageContent() {
                     const succeeded = outputs.length - failed
                     if (failed > 0 && succeeded > 0) {
                       return (
-                        <div className="mx-auto max-w-[680px] rounded-2xl border-[3px] border-black bg-[#FFF4E0] p-4 shadow-[4px_4px_0_0_#000]">
+                        <div className="w-full rounded-2xl border-[3px] border-black bg-[#FFF4E0] p-4 shadow-[4px_4px_0_0_#000]">
                           <div className="flex items-start gap-3">
                             <AlertTriangle className="h-6 w-6 flex-shrink-0 text-[#FF8C69]" />
                             <div className="flex-1">
@@ -1219,7 +1219,7 @@ function TryOnPageContent() {
                     }
                     return null
                   })()}
-                  <div className="mx-auto flex max-w-[680px] flex-wrap justify-center gap-3">
+                  <div className="flex w-full flex-wrap justify-center gap-3">
                     <button type="button" onClick={downloadCurrent} className="rounded-full border-[3px] border-black bg-[#FF8C69] px-6 py-3 text-sm font-black uppercase text-white shadow-[4px_4px_0_0_#000]">Download Image</button>
                     {(selectedOutput?.imageUrl || selectedOutput?.base64Image) ? (
                       <CaptionGenerator
