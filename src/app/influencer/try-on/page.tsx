@@ -923,7 +923,7 @@ function TryOnPageContent() {
   return (
     <div className="relative min-h-screen bg-[#F9F8F4] text-black pt-20 lg:pt-0">
       <div className="flex flex-col lg:flex-row lg:h-screen lg:pt-20">
-        <div className={`fixed inset-x-0 bottom-0 top-[10vh] z-50 overflow-y-auto rounded-t-[32px] border-t-[4px] border-black bg-white p-6 pb-[calc(1.5rem+env(safe-area-inset-bottom))] shadow-[0_-12px_0_0_rgba(0,0,0,0.1)] transition-transform duration-300 lg:static lg:block lg:h-full lg:w-[420px] lg:flex-shrink-0 lg:rounded-none lg:border-r-[4px] lg:border-t-0 lg:p-6 lg:shadow-none xl:w-[460px] ${mobileSettingsOpen ? 'translate-y-0' : 'pointer-events-none translate-y-[calc(100%+96px)] lg:pointer-events-auto lg:translate-y-0'}`}>
+        <div className={`fixed inset-x-0 bottom-0 top-20 z-50 overflow-y-auto rounded-none border-t-[4px] border-black bg-white p-6 pb-[calc(1.5rem+env(safe-area-inset-bottom))] shadow-none transition-transform duration-300 lg:static lg:block lg:h-full lg:w-[420px] lg:flex-shrink-0 lg:rounded-none lg:border-r-[4px] lg:border-t-0 lg:p-6 lg:shadow-none xl:w-[460px] ${mobileSettingsOpen ? 'translate-y-0' : 'pointer-events-none translate-y-[calc(100%+96px)] lg:pointer-events-auto lg:translate-y-0'}`}>
           <div className="mb-6 flex items-center justify-between lg:hidden">
             <h2 className="text-2xl font-black uppercase">Try-On Settings</h2>
             <button type="button" onClick={() => setMobileSettingsOpen(false)} className="rounded-full border-[3px] border-black bg-[#F9F8F4] px-4 py-2 text-xs font-black uppercase shadow-[3px_3px_0_0_#000]">Close</button>
@@ -1166,7 +1166,7 @@ function TryOnPageContent() {
                           {/* Centre handle circle */}
                           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 flex h-9 w-9 items-center justify-center rounded-full border-[3px] border-black bg-white shadow-[3px_3px_0_0_#000]">
                             <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                              <path d="M5 8H1M11 8h4M5 5l-3 3 3 3M11 5l3 3-3 3" stroke="black" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                              <path d="M5 8H1M11 8h4M5 5l-3 3 3 3M11 5l3 3-3 3" stroke="black" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                             </svg>
                           </div>
                         </div>
@@ -1184,11 +1184,12 @@ function TryOnPageContent() {
                     {outputs.map((output: any, index: number) => {
                       const outputKey = output.referenceImageId || output.imageUrl || output.label || `output-${index}`
                       return (
-                      <button key={outputKey} type="button" onClick={() => setSelectedOutputIndex(index)} className={`relative aspect-[4/5] overflow-hidden rounded-2xl border-[3px] shadow-[4px_4px_0_0_#000] ${selectedOutputIndex === index ? 'border-[#FF8C69]' : 'border-black'}`}>
-                        {output.imageUrl || output.base64Image ? <Image src={output.imageUrl ? resolveStoredImageUrl(output.imageUrl) : toImageSrc(output.base64Image)} alt={`Variant ${index}`} fill unoptimized className="object-cover" /> : <div className="flex h-full items-center justify-center bg-gray-100"><AlertTriangle className="h-5 w-5 text-black/30" /></div>}
-                        <div className="absolute bottom-0 inset-x-0 bg-black/60 px-2 py-1 text-[10px] font-bold text-white truncate">{output.label || `Photo ${index + 1}`}</div>
-                      </button>
-                    )})}
+                        <button key={outputKey} type="button" onClick={() => setSelectedOutputIndex(index)} className={`relative aspect-[4/5] overflow-hidden rounded-2xl border-[3px] shadow-[4px_4px_0_0_#000] ${selectedOutputIndex === index ? 'border-[#FF8C69]' : 'border-black'}`}>
+                          {output.imageUrl || output.base64Image ? <Image src={output.imageUrl ? resolveStoredImageUrl(output.imageUrl) : toImageSrc(output.base64Image)} alt={`Variant ${index}`} fill unoptimized className="object-cover" /> : <div className="flex h-full items-center justify-center bg-gray-100"><AlertTriangle className="h-5 w-5 text-black/30" /></div>}
+                          <div className="absolute bottom-0 inset-x-0 bg-black/60 px-2 py-1 text-[10px] font-bold text-white truncate">{output.label || `Photo ${index + 1}`}</div>
+                        </button>
+                      )
+                    })}
                   </div>
                   {/* Partial-failure banner — fires when 1 or 2 of 3 outputs failed */}
                   {(() => {
@@ -1414,14 +1415,18 @@ function TryOnPageContent() {
       {libraryModalOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
           <div className="flex max-h-[90vh] w-full max-w-4xl flex-col overflow-hidden rounded-[32px] border-[4px] border-black bg-[#F6F1E8] shadow-[12px_12px_0_0_#000]">
-            <div className="flex items-center justify-between border-b-[4px] border-black bg-white p-5">
+            <div className="flex flex-col gap-3 border-b-[4px] border-black bg-white p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5">
               <div>
-                <h2 className="text-2xl font-black uppercase">Reference Library</h2>
-                <p className="text-xs font-semibold text-black/60">Pick exactly 3 photos to override the AI</p>
+                <h2 className="text-xl font-black uppercase sm:text-2xl">Reference Library</h2>
+                <p className="mt-0.5 text-xs font-semibold text-black/60">Pick exactly 3 photos to override the AI</p>
               </div>
-              <div className="flex gap-2">
-                <button type="button" onClick={() => void refreshAll()} className="rounded-full border-2 border-black bg-[#F9F8F4] p-2 hover:bg-[#FFD93D] transition"><RefreshCw className={`h-5 w-5 ${loadingRecommend ? 'animate-spin' : ''}`} /></button>
-                <button type="button" onClick={() => setLibraryModalOpen(false)} className="rounded-full border-2 border-black bg-[#FF8C69] px-4 py-2 font-black uppercase text-white hover:bg-[#FF7A50] transition">Done</button>
+              <div className="flex items-center gap-2 self-start sm:self-auto">
+                <button type="button" onClick={() => void refreshAll()} className="shrink-0 rounded-full border-2 border-black bg-[#F9F8F4] p-2 transition hover:bg-[#FFD93D]">
+                  <RefreshCw className={`h-5 w-5 ${loadingRecommend ? 'animate-spin' : ''}`} />
+                </button>
+                <button type="button" onClick={() => setLibraryModalOpen(false)} className="shrink-0 rounded-full border-2 border-black bg-[#FF8C69] px-6 py-2 font-black uppercase text-white transition hover:bg-[#FF7A50]">
+                  Done
+                </button>
               </div>
             </div>
             <div className="flex-1 overflow-y-auto p-5">

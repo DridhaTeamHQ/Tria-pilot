@@ -268,7 +268,7 @@ export default function LandingPage() {
 
         <section className="relative overflow-hidden border-t-[3px] border-black bg-[#ff8c78] px-4 py-5 sm:px-8 sm:py-6 lg:px-10">
           <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_10%_50%,rgba(255,255,255,0.22),transparent_16%),radial-gradient(circle_at_90%_50%,rgba(255,255,255,0.18),transparent_18%)]" />
-          <div className="relative flex flex-wrap items-center justify-center gap-3 text-center text-black sm:gap-5">
+          <div className="relative flex flex-nowrap items-center justify-center gap-3 text-center text-black sm:gap-5">
             <BandWord label="Create" />
             <BandArrow />
             <BandWord label="Share" />
@@ -344,14 +344,14 @@ export default function LandingPage() {
             </div>
 
             {/* Bottom Section */}
-            <div className="flex flex-col items-center justify-between gap-4 border-t pt-6 text-[12px] font-bold uppercase tracking-[0.08em] text-black/60 sm:flex-row">
-              <div>Made with in India</div>
-              <div>(C) 2026 DRIDHATECHNOLOGIES</div>
-              <div>ENGLISH (US)</div>
+            <div className="flex flex-row items-center justify-center gap-2 border-t pt-6 text-[8px] font-bold uppercase tracking-tight text-black/60 sm:justify-between sm:gap-4 sm:text-[12px] sm:tracking-[0.08em] md:text-[10px] lg:text-[12px]">
+              <div className="text-center">Made with in India</div>
+              <div className="text-center">(C) 2026 DRIDHATECHNOLOGIES</div>
+              <div className="text-center">ENGLISH (US)</div>
             </div>
 
             {/* Background Wordmark */}
-            <div className="kiwikoo-wordmark text-[clamp(5rem,18vw,11rem)] leading-none text-black/[0.04] text-center">
+            <div className="kiwikoo-wordmark text-[clamp(3.8rem,15vw,11rem)] leading-none text-black/[0.04] text-center overflow-hidden">
               KIWIKOO
             </div>
           </div>
@@ -759,7 +759,7 @@ function WhyCard({
 
 function BandWord({ label }: { label: string }) {
   return (
-    <span className="text-[clamp(2.2rem,6vw,4.8rem)] font-black uppercase leading-[0.9] tracking-[-0.06em]">
+    <span className="text-[clamp(1.2rem,4vw,1.8rem)] sm:text-[clamp(2.2rem,6vw,4.8rem)] font-black uppercase leading-[0.9] tracking-[-0.06em]">
       {label}
     </span>
   )
@@ -767,8 +767,8 @@ function BandWord({ label }: { label: string }) {
 
 function BandArrow() {
   return (
-    <span className="inline-flex h-12 w-12 items-center justify-center rounded-full border-[2px] border-black/15 bg-white/25 text-[clamp(1.8rem,3vw,2.5rem)] font-black leading-none shadow-[inset_0_0_0_1px_rgba(255,255,255,0.22)]">
-      →
+    <span className="inline-flex shrink-0 h-7 w-7 sm:h-12 sm:w-12 items-center justify-center rounded-full border-[1.5px] sm:border-[2px] border-black/15 bg-white/25 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.22)]">
+      <ArrowRight className="h-3.5 w-3.5 sm:h-6 sm:w-6" strokeWidth={3} />
     </span>
   )
 }

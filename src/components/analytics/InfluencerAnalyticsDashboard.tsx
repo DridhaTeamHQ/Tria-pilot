@@ -109,30 +109,57 @@ function StatCard({
 }) {
   const isPositive = change >= 0
   return (
-    <motion.div
-      whileHover={{ y: -4, x: -4, boxShadow: '12px 12px 0px 0px rgba(0,0,0,1)' }}
-      className="group relative overflow-hidden rounded-2xl border-[3px] border-black bg-white p-4 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all sm:p-6 sm:shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]"
-    >
-      <div className="flex items-center justify-between">
-        <div className={`flex h-12 w-12 items-center justify-center rounded-xl border-2 border-black transition-transform group-hover:scale-110`} style={{ backgroundColor: color }}>
-          <Icon className="h-6 w-6 text-white" />
+    <>
+      {/* MOBILE STAT CARD (Horizontal layout) */}
+      <motion.div
+        whileHover={{ y: -4, x: -4, boxShadow: '6px 6px 0px 0px rgba(0,0,0,1)' }}
+        className="group relative overflow-hidden rounded-[16px] border-[3px] border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all flex items-center sm:hidden"
+        style={{ backgroundColor: `${color}15` }}
+      >
+        <div className="m-4 mr-0 flex h-[72px] w-[72px] shrink-0 items-center justify-center rounded-[14px] border-[2px] border-black bg-white transition-transform group-hover:scale-105">
+          <Icon className="h-9 w-9" color={color} />
         </div>
-        <div className="flex h-6 w-6 items-center justify-center">
-          <TrendingUp className="h-4 w-4 text-black/10" />
+        <div className="flex flex-col gap-1 py-4 pr-4 pl-4 w-full">
+          <div className="flex items-baseline gap-2 flex-wrap">
+            <h3 className="text-[32px] font-black text-black leading-none" title={value}>{value}</h3>
+            <p className="text-[11px] font-black uppercase tracking-widest text-black/90">{label}</p>
+          </div>
+          <div className="flex items-center gap-1.5 mt-0.5">
+            <div className={`flex items-center gap-1 rounded-full border-2 border-black px-1.5 py-0.5 text-[9px] font-black ${isPositive ? 'bg-emerald-400' : 'bg-rose-400'}`}>
+              {isPositive ? <ArrowUpRight className="h-2.5 w-2.5" /> : <ArrowDownRight className="h-2.5 w-2.5" />}
+              {Math.abs(change).toFixed(1)}%
+            </div>
+            <span className="text-[9px] font-bold text-black/40">vs {days}d</span>
+          </div>
         </div>
-      </div>
-      <div className="mt-4 sm:mt-5">
-        <p className="text-xs font-black uppercase tracking-wider text-black/40">{label}</p>
-        <h3 className="mt-1 text-2xl font-black text-black sm:text-3xl">{value}</h3>
-      </div>
-      <div className="mt-4 flex flex-wrap items-center gap-1.5">
-        <div className={`flex items-center gap-1 rounded-full border-2 border-black px-2 py-0.5 text-[10px] font-black ${isPositive ? 'bg-emerald-400' : 'bg-rose-400'}`}>
-          {isPositive ? <ArrowUpRight className="h-3 w-3" /> : <ArrowDownRight className="h-3 w-3" />}
-          {Math.abs(change).toFixed(1)}%
+      </motion.div>
+
+      {/* DESKTOP STAT CARD (Vertical layout) */}
+      <motion.div
+        whileHover={{ y: -4, x: -4, boxShadow: '12px 12px 0px 0px rgba(0,0,0,1)' }}
+        className="group relative overflow-hidden rounded-2xl border-[3px] border-black bg-white p-4 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all hidden sm:block sm:p-6 sm:shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]"
+      >
+        <div className="flex items-center justify-between">
+          <div className={`flex h-12 w-12 items-center justify-center rounded-xl border-2 border-black transition-transform group-hover:scale-110`} style={{ backgroundColor: color }}>
+            <Icon className="h-6 w-6 text-white" />
+          </div>
+          <div className="flex h-6 w-6 items-center justify-center">
+            <TrendingUp className="h-4 w-4 text-black/10" />
+          </div>
         </div>
-        <span className="text-[10px] font-bold text-black/30">vs last {days} days</span>
-      </div>
-    </motion.div>
+        <div className="mt-4 sm:mt-5">
+          <p className="text-xs font-black uppercase tracking-wider text-black/40">{label}</p>
+          <h3 className="mt-1 text-2xl font-black text-black sm:text-3xl">{value}</h3>
+        </div>
+        <div className="mt-4 flex flex-wrap items-center gap-1.5">
+          <div className={`flex items-center gap-1 rounded-full border-2 border-black px-2 py-0.5 text-[10px] font-black ${isPositive ? 'bg-emerald-400' : 'bg-rose-400'}`}>
+            {isPositive ? <ArrowUpRight className="h-3 w-3" /> : <ArrowDownRight className="h-3 w-3" />}
+            {Math.abs(change).toFixed(1)}%
+          </div>
+          <span className="text-[10px] font-bold text-black/30">vs last {days} days</span>
+        </div>
+      </motion.div>
+    </>
   )
 }
 
