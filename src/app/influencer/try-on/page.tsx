@@ -627,6 +627,11 @@ function TryOnPageContent() {
     }
   }, [refreshAll])
 
+  const removeSelectedReference = useCallback((photoId: string) => {
+    setSelectionMode('manual')
+    setSelectedReferenceIds((previousIds) => previousIds.filter((id) => id && id !== photoId))
+  }, [])
+
   const submitTryOn = useCallback(async () => {
     if (!currentRecommendations.isReadyForTryOn) {
       showWarningToast('More library photos needed', `${currentRecommendations.photosNeeded} more approved photo${currentRecommendations.photosNeeded === 1 ? '' : 's'} are required before try-on is enabled.`)
@@ -1443,7 +1448,7 @@ function TryOnPageContent() {
                   const toggle = () => {
                     setSelectionMode('manual');
                     if (isActive) {
-                      setSelectedReferenceIds(prev => prev.filter(id => id !== photo.id));
+                      removeSelectedReference(photo.id);
                     } else {
                       if (selectedReferenceIds.filter(Boolean).length >= 3) {
                         const next = [...selectedReferenceIds]; next[2] = photo.id; setSelectedReferenceIds(next);
@@ -1456,9 +1461,25 @@ function TryOnPageContent() {
                     <div key={photo.id} className={`group relative aspect-[4/5] overflow-hidden rounded-2xl border-[3px] shadow-[4px_4px_0_0_#000] cursor-pointer transition-transform hover:-translate-y-1 ${isActive ? 'border-[#FFD93D]' : 'border-black hover:border-black/50'}`} onClick={toggle}>
                       <Image src={resolveStoredImageUrl(photo.imageUrl)} alt="Library" fill unoptimized className="object-cover" />
                       <div className="absolute left-2 top-2 rounded-full border-2 border-black bg-white px-2 py-0.5 text-[10px] font-black uppercase">{photo.status}</div>
-                      {isActive && <div className="absolute right-2 top-2 rounded-full border-2 border-black bg-[#FFD93D] px-2 py-0.5 text-[10px] font-black uppercase"><Check className="h-3 w-3" /></div>}
+                      {isActive && (
+                        <>
+                          <div className="absolute right-2 top-2 rounded-full border-2 border-black bg-[#FFD93D] px-2 py-0.5 text-[10px] font-black uppercase"><Check className="h-3 w-3" /></div>
+                          <button
+                            type="button"
+                            onClick={(event) => {
+                              event.stopPropagation()
+                              removeSelectedReference(photo.id)
+                            }}
+                            className="absolute bottom-2 right-2 inline-flex items-center gap-1 rounded-full border-2 border-black bg-[#FF8C69] px-2 py-1 text-[9px] font-black uppercase text-white shadow-[2px_2px_0_0_#000] transition hover:bg-[#FF7A50]"
+                            aria-label="Remove selected image"
+                          >
+                            <Trash2 className="h-3 w-3" />
+                            Remove
+                          </button>
+                        </>
+                      )}
                       {photo?.garmentSuitability && (
-                        <div className="absolute bottom-2 left-2 truncate right-2 rounded-full border-2 border-black bg-white/90 px-2 text-[9px] font-bold uppercase backdrop-blur">
+                        <div className={`absolute bottom-2 left-2 rounded-full border-2 border-black bg-white/90 px-2 text-[9px] font-bold uppercase backdrop-blur ${isActive ? 'right-[88px]' : 'right-2 truncate'}`}>
                           AI Score: {Math.round((photo.selectionScore || 0) * 100)}
                         </div>
                       )}
