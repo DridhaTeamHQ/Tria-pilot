@@ -195,6 +195,7 @@ function TryOnPageContent() {
   const [loadingLibrary, setLoadingLibrary] = useState(true)
   const [uploading, setUploading] = useState(false)
   const [archivingId, setArchivingId] = useState('')
+  const [archivingSelection, setArchivingSelection] = useState(false)
   const [selectedReferenceIds, setSelectedReferenceIds] = useState<string[]>([])
   const [activeSlot, setActiveSlot] = useState(0)
   const [selectedGarmentImage, setSelectedGarmentImage] = useState('')
@@ -627,10 +628,30 @@ function TryOnPageContent() {
     }
   }, [refreshAll])
 
-  const removeSelectedReference = useCallback((photoId: string) => {
-    setSelectionMode('manual')
-    setSelectedReferenceIds((previousIds) => previousIds.filter((id) => id && id !== photoId))
-  }, [])
+  const archiveSelectedPhotos = useCallback(async () => {
+    const photoIds = selectedReferenceIds.filter(Boolean)
+    if (!photoIds.length) return
+    const confirmLabel = photoIds.length === 1 ? 'this selected reference photo' : `these ${photoIds.length} selected reference photos`
+    if (!window.confirm(`Archive ${confirmLabel}?`)) return
+
+    setArchivingSelection(true)
+    try {
+      await Promise.all(
+        photoIds.map(async (photoId) => {
+          const res = await fetch(`/api/reference-photos?id=${encodeURIComponent(photoId)}`, { method: 'DELETE', credentials: 'include' })
+          await safeParseResponse(res, 'reference photo archive')
+        })
+      )
+      showInfoToast('Photos archived', `${photoIds.length} selected photo${photoIds.length === 1 ? '' : 's'} were removed from your active library.`)
+      setSelectedReferenceIds([])
+      setSelectionMode('auto')
+      await refreshAll()
+    } catch (error) {
+      showErrorToast('Archive failed', error instanceof Error ? error.message : 'Failed to archive selected photos.')
+    } finally {
+      setArchivingSelection(false)
+    }
+  }, [refreshAll, selectedReferenceIds])
 
   const submitTryOn = useCallback(async () => {
     if (!currentRecommendations.isReadyForTryOn) {
@@ -1435,10 +1456,19 @@ function TryOnPageContent() {
               </div>
             </div>
             <div className="flex-1 overflow-y-auto p-5">
-              <div className="mb-6 flex items-center justify-end">
+              <div className="mb-6 flex flex-wrap items-center justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={() => void archiveSelectedPhotos()}
+                  disabled={archivingSelection || !selectedReferenceIds.filter(Boolean).length}
+                  className="inline-flex items-center gap-2 rounded-full border-[3px] border-black bg-[#FF8C69] px-4 py-2 text-sm font-black uppercase text-white shadow-[4px_4px_0_0_#000] disabled:cursor-not-allowed disabled:bg-[#E5E5E5] disabled:text-black/45 disabled:shadow-none"
+                >
+                  {archivingSelection ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                  Remove
+                </button>
                 <label className="inline-flex cursor-pointer items-center gap-2 rounded-full border-[3px] border-black bg-[#FFD93D] px-4 py-2 text-sm font-black uppercase shadow-[4px_4px_0_0_#000]">
                   {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />} Upload New
-                  <input type="file" accept="image/*" className="hidden" disabled={uploading} onChange={(e) => { const file = e.target.files?.[0]; e.currentTarget.value = ''; if (file) void uploadReferencePhoto(file) }} />
+                  <input type="file" accept="image/*" className="hidden" disabled={uploading || archivingSelection} onChange={(e) => { const file = e.target.files?.[0]; e.currentTarget.value = ''; if (file) void uploadReferencePhoto(file) }} />
                 </label>
               </div>
               <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
@@ -1448,7 +1478,7 @@ function TryOnPageContent() {
                   const toggle = () => {
                     setSelectionMode('manual');
                     if (isActive) {
-                      removeSelectedReference(photo.id);
+                      setSelectedReferenceIds(prev => prev.filter(id => id !== photo.id));
                     } else {
                       if (selectedReferenceIds.filter(Boolean).length >= 3) {
                         const next = [...selectedReferenceIds]; next[2] = photo.id; setSelectedReferenceIds(next);
@@ -1461,25 +1491,9 @@ function TryOnPageContent() {
                     <div key={photo.id} className={`group relative aspect-[4/5] overflow-hidden rounded-2xl border-[3px] shadow-[4px_4px_0_0_#000] cursor-pointer transition-transform hover:-translate-y-1 ${isActive ? 'border-[#FFD93D]' : 'border-black hover:border-black/50'}`} onClick={toggle}>
                       <Image src={resolveStoredImageUrl(photo.imageUrl)} alt="Library" fill unoptimized className="object-cover" />
                       <div className="absolute left-2 top-2 rounded-full border-2 border-black bg-white px-2 py-0.5 text-[10px] font-black uppercase">{photo.status}</div>
-                      {isActive && (
-                        <>
-                          <div className="absolute right-2 top-2 rounded-full border-2 border-black bg-[#FFD93D] px-2 py-0.5 text-[10px] font-black uppercase"><Check className="h-3 w-3" /></div>
-                          <button
-                            type="button"
-                            onClick={(event) => {
-                              event.stopPropagation()
-                              removeSelectedReference(photo.id)
-                            }}
-                            className="absolute bottom-2 right-2 inline-flex items-center gap-1 rounded-full border-2 border-black bg-[#FF8C69] px-2 py-1 text-[9px] font-black uppercase text-white shadow-[2px_2px_0_0_#000] transition hover:bg-[#FF7A50]"
-                            aria-label="Remove selected image"
-                          >
-                            <Trash2 className="h-3 w-3" />
-                            Remove
-                          </button>
-                        </>
-                      )}
+                      {isActive && <div className="absolute right-2 top-2 rounded-full border-2 border-black bg-[#FFD93D] px-2 py-0.5 text-[10px] font-black uppercase"><Check className="h-3 w-3" /></div>}
                       {photo?.garmentSuitability && (
-                        <div className={`absolute bottom-2 left-2 rounded-full border-2 border-black bg-white/90 px-2 text-[9px] font-bold uppercase backdrop-blur ${isActive ? 'right-[88px]' : 'right-2 truncate'}`}>
+                        <div className="absolute bottom-2 left-2 right-2 truncate rounded-full border-2 border-black bg-white/90 px-2 text-[9px] font-bold uppercase backdrop-blur">
                           AI Score: {Math.round((photo.selectionScore || 0) * 100)}
                         </div>
                       )}
