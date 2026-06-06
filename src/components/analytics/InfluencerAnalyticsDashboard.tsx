@@ -654,13 +654,13 @@ export default function InfluencerAnalyticsDashboard() {
             </h1>
             <p className="mt-2 text-sm font-black uppercase tracking-widest text-black/40">Performance Overview & Strategic Insights</p>
           </div>
-          <div className="flex flex-wrap items-center justify-between gap-1 rounded-2xl border-[3px] border-black bg-white p-1.5 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] sm:gap-2 sm:p-2">
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border-[3px] border-black bg-white p-1.5 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] sm:gap-2 sm:p-2">
             <div className="flex flex-1 items-center justify-between sm:justify-start gap-1">
               {[7, 30, 90, 365].map((d) => (
                 <button
                   key={d}
                   onClick={() => setDays(d)}
-                  className={`rounded-xl px-2 py-2 text-[10px] font-black uppercase transition-all sm:px-4 ${days === d ? 'bg-black text-white' : 'text-black/40 hover:bg-black/5'
+                  className={`rounded-md sm:rounded-xl px-2 py-2 text-[10px] font-black uppercase transition-all sm:px-4 ${days === d ? 'bg-black text-white' : 'text-black/40 hover:bg-black/5'
                     }`}
                 >
                   {d === 365 ? '365D' : `${d}D`}
@@ -687,11 +687,38 @@ export default function InfluencerAnalyticsDashboard() {
         <div className="mb-6 grid items-start gap-4 sm:gap-6 lg:grid-cols-3">
           <div className="flex flex-col gap-4 sm:gap-6 lg:col-span-2 min-w-0">
             <div className="flex flex-col min-w-0 rounded-2xl border-[3px] border-black bg-white p-4 pb-4 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] sm:p-6 sm:shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
-              <div className="mb-5 flex flex-col gap-3 sm:mb-8 sm:flex-row sm:items-center sm:justify-between">
-                <h3 className="flex items-center gap-2 text-sm font-black uppercase tracking-tight text-black">
-                  <BarChart3 className="h-5 w-5" />
-                  Revenue & Clicks Trend
-                </h3>
+              <div className="mb-5 flex flex-col gap-4 sm:mb-8 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex items-center justify-between w-full sm:w-auto">
+                  <h3 className="flex items-center gap-2 text-sm font-black uppercase tracking-tight text-black">
+                    <BarChart3 className="h-5 w-5 shrink-0" />
+                    <span className="truncate">Revenue & Clicks Trend</span>
+                  </h3>
+                  <div className="relative sm:hidden ml-2 shrink-0">
+                    <button
+                      onClick={() => setIsChartDaysDropdownOpen(!isChartDaysDropdownOpen)}
+                      className="flex items-center gap-1 rounded-sm border border-black bg-yellow-300 px-1.5 py-0.5 text-[8px] font-black uppercase shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-none"
+                    >
+                      Last {days} Days
+                      <ChevronDown className="h-2.5 w-2.5" />
+                    </button>
+                    {isChartDaysDropdownOpen && (
+                      <div className="absolute right-0 top-full mt-2 z-10 w-28 rounded-lg border-2 border-black bg-white p-1 shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]">
+                        {[7, 30, 90, 365].map((d) => (
+                          <button
+                            key={d}
+                            onClick={() => {
+                              setDays(d)
+                              setIsChartDaysDropdownOpen(false)
+                            }}
+                            className={`w-full text-left rounded-sm px-1.5 py-1 text-[8px] font-black uppercase transition-colors ${days === d ? 'bg-yellow-300 text-black' : 'text-black/60 hover:bg-black/5'}`}
+                          >
+                            Last {d} Days
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
                 <div className="flex flex-wrap items-center gap-3 sm:gap-6">
                   <div className="flex flex-wrap items-center gap-3 sm:gap-4">
                     <div
@@ -716,7 +743,7 @@ export default function InfluencerAnalyticsDashboard() {
                       <span className="text-[10px] font-black uppercase tracking-wider text-black/40">Orders</span>
                     </div>
                   </div>
-                  <div className="relative">
+                  <div className="relative hidden sm:block">
                     <button
                       onClick={() => setIsChartDaysDropdownOpen(!isChartDaysDropdownOpen)}
                       className="flex items-center gap-1.5 rounded-lg border-2 border-black bg-yellow-300 px-3 py-1.5 text-[10px] font-black uppercase shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-none"
