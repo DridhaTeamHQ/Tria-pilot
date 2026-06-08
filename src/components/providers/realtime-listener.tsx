@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef } from 'react'
+import type { AuthChangeEvent, Session } from '@supabase/supabase-js'
 import { createClient } from '@/lib/auth-client'
 import { useQueryClient } from '@tanstack/react-query'
 import { toast } from '@/lib/simple-sonner'
@@ -14,6 +15,77 @@ export function RealtimeListener() {
     // Track the active channel to avoid recreating on every render
     const channelRef = useRef<ReturnType<ReturnType<typeof createClient>['channel']> | null>(null)
     const activeUserIdRef = useRef<string | null>(null)
+    const lastKnownAuthUserIdRef = useRef<string | null>(null)
+    const authSyncReadyRef = useRef(false)
+
+    useEffect(() => {
+        lastKnownAuthUserIdRef.current = user?.id ?? null
+    }, [user?.id])
+
+    useEffect(() => {
+        if (typeof window === 'undefined') return
+
+        const supabase = createClient()
+        let disposed = false
+
+        const syncQueriesAndRoute = () => {
+            queryClient.invalidateQueries({ queryKey: ['user'] })
+            queryClient.invalidateQueries({ queryKey: ['notifications'] })
+            queryClient.invalidateQueries({ queryKey: ['favorites'] })
+            queryClient.invalidateQueries({ queryKey: ['generations'] })
+            router.refresh()
+        }
+
+        supabase.auth.getUser().then(({ data }: { data: { user: { id?: string | null } | null } }) => {
+            if (disposed) return
+            lastKnownAuthUserIdRef.current = data.user?.id ?? null
+            authSyncReadyRef.current = true
+        }).catch(() => {
+            if (disposed) return
+            authSyncReadyRef.current = true
+        })
+
+        const { data: authListener } = supabase.auth.onAuthStateChange((event: AuthChangeEvent, session: Session | null) => {
+            const nextUserId = session?.user?.id ?? null
+            const previousUserId = lastKnownAuthUserIdRef.current
+            lastKnownAuthUserIdRef.current = nextUserId
+
+            if (event === 'INITIAL_SESSION') {
+                authSyncReadyRef.current = true
+                return
+            }
+
+            syncQueriesAndRoute()
+
+            if (!authSyncReadyRef.current || previousUserId === nextUserId) {
+                authSyncReadyRef.current = true
+                return
+            }
+
+            if (previousUserId && nextUserId) {
+                toast.info('This tab switched to a different account because you logged in elsewhere.')
+            } else if (previousUserId && !nextUserId) {
+                toast.info('You were signed out in another tab.')
+            } else if (!previousUserId && nextUserId) {
+                toast.info('You signed in from another tab. Refreshing this session now.')
+            }
+        })
+
+        const handleVisibilityChange = () => {
+            if (document.visibilityState !== 'visible') return
+            syncQueriesAndRoute()
+        }
+
+        window.addEventListener('focus', handleVisibilityChange)
+        document.addEventListener('visibilitychange', handleVisibilityChange)
+
+        return () => {
+            disposed = true
+            authListener.subscription.unsubscribe()
+            window.removeEventListener('focus', handleVisibilityChange)
+            document.removeEventListener('visibilitychange', handleVisibilityChange)
+        }
+    }, [queryClient, router])
 
     useEffect(() => {
         if (typeof window === 'undefined') return
