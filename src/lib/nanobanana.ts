@@ -613,11 +613,21 @@ export async function generateTryOnDirect(options: DirectTryOnOptions): Promise<
   if (!cleanGarment || cleanGarment.length < 100) throw new Error('Invalid garment image')
   const resolvedAspectRatio = (aspectRatio || await resolveSourceAspectRatio(cleanPerson)) as GeminiAspectRatio
 
-  const requestedModel =
+  // GEMINI MODEL RESOLUTION + HARD GUARD.
+  // This is the Gemini (generateContent) transport. TRYON_RENDER_MODEL is
+  // frequently set to an OpenAI model (e.g. gpt-image-1.5) for the SEPARATE
+  // OpenAI Images path — feeding that here 404s ("models/gpt-image-1.5 is not
+  // found for API version v1beta"). So we prefer the Gemini-specific env vars
+  // and coerce ANY non-"gemini-*" name to a safe Gemini image model.
+  const rawRequestedModel =
     model ||
-    process.env.TRYON_RENDER_MODEL?.trim() ||
     process.env.TRYON_IMAGE_MODEL?.trim() ||
+    process.env.GEMINI_IMAGE_MODEL?.trim() ||
+    process.env.TRYON_RENDER_MODEL?.trim() ||
     'gemini-3-pro-image-preview'
+  const requestedModel = /^gemini-/i.test(rawRequestedModel)
+    ? rawRequestedModel
+    : 'gemini-3-pro-image-preview'
 
   const isDev = process.env.VERCEL_ENV ? process.env.VERCEL_ENV !== 'production' : process.env.NODE_ENV !== 'production'
   const swapScope = buildGeminiSwapScope(options.garmentIntel ?? null)
