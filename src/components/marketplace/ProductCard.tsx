@@ -116,7 +116,7 @@ const ProductCard = memo(function ProductCard({ product, index, priority = false
                 onMouseEnter={handleMouseEnter}
                 onMouseLeave={handleMouseLeave}
             >
-                <div className="aspect-[4/5] sm:aspect-[3/4] relative overflow-hidden bg-white border-b-2 border-black sm:border-b-[3px]">
+                <div className="aspect-[4/5] relative overflow-hidden bg-white border-b-2 border-black sm:border-b-[3px]">
                     {!firstImageLoaded && (
                         <div className="absolute inset-0 bg-gradient-to-br from-cream via-charcoal/5 to-cream animate-pulse">
                             <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent skeleton-shimmer" />
@@ -168,12 +168,12 @@ const ProductCard = memo(function ProductCard({ product, index, priority = false
                     )}
                 </div>
 
-                <div className="space-y-1.5 p-2.5 pb-1 sm:space-y-3 sm:p-4">
-                    <h3 className="min-h-[28px] text-[12px] font-semibold leading-tight text-charcoal line-clamp-2 sm:min-h-[38px] sm:text-[15px]">
+                <div className="space-y-1 p-2 pb-1 sm:space-y-2 sm:p-3">
+                    <h3 className="min-h-[28px] text-[11px] font-semibold leading-tight text-charcoal line-clamp-2 sm:min-h-[32px] sm:text-[13px]">
                         {product.name}
                     </h3>
 
-                    <div className="flex items-center gap-1 text-[10px] text-charcoal/60 sm:gap-1.5 sm:text-sm">
+                    <div className="flex items-center gap-1 text-[9px] text-charcoal/60 sm:gap-1.5 sm:text-[11px]">
                         <span className="truncate font-medium">{brandName}</span>
                         {priceDisplay && (
                             <>
@@ -184,7 +184,7 @@ const ProductCard = memo(function ProductCard({ product, index, priority = false
                     </div>
 
                     <div className="hidden sm:flex items-center justify-between gap-1 min-w-0">
-                        <span className="max-w-[48%] truncate rounded-full border-2 border-black/15 bg-[#F6F2E8] px-2 py-1 text-[9px] font-bold uppercase tracking-wide text-charcoal/70 sm:max-w-none sm:px-2.5 sm:text-[11px]">
+                        <span className="max-w-[48%] truncate rounded-full border-2 border-black/15 bg-[#F6F2E8] px-2 py-1 text-[9px] font-bold uppercase tracking-wide text-charcoal/70 sm:max-w-none sm:px-2 sm:py-0.5 sm:text-[9px]">
                             {product.category || 'Product'}
                         </span>
 
@@ -194,7 +194,7 @@ const ProductCard = memo(function ProductCard({ product, index, priority = false
                                 e.stopPropagation()
                                 router.push(`/influencer/try-on?productId=${product.id}`)
                             }}
-                            className=" inline-flex shrink-0 items-center gap-0.5 rounded-full border-[1.5px] border-black bg-[#FFD93D] px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-wide text-black shadow-[1.5px_1.5px_0px_0px_rgba(0,0,0,1)] transition-all hover:translate-x-[1.5px] hover:translate-y-[1.5px] hover:shadow-none sm:border-[2px] sm:gap-1 sm:px-3 sm:py-1.5 sm:text-[11px] sm:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] sm:hover:translate-x-[2px] sm:hover:translate-y-[2px]"
+                            className=" inline-flex shrink-0 items-center gap-0.5 rounded-full border-[1.5px] border-black bg-[#FFD93D] px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-wide text-black shadow-[1.5px_1.5px_0px_0px_rgba(0,0,0,1)] transition-all hover:translate-x-[1.5px] hover:translate-y-[1.5px] hover:shadow-none sm:border-[2px] sm:gap-1 sm:px-2 sm:py-1 sm:text-[9px] sm:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] sm:hover:translate-x-[2px] sm:hover:translate-y-[2px]"
                         >
                             Try-On
                             <ArrowRight className="w-2 h-2 sm:w-2.5 sm:h-2.5" />

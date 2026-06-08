@@ -81,6 +81,12 @@ export default function MarketplaceClient({ products, categories, activeCategory
     const [mounted, setMounted] = useState(false)
     const [allowPrefetch, setAllowPrefetch] = useState(true)
     const scrollYRef = useRef(0)
+    const [currentPage, setCurrentPage] = useState(1)
+    const ITEMS_PER_PAGE = 15
+
+    useEffect(() => {
+        setCurrentPage(1)
+    }, [activeCategory])
 
     useEffect(() => { setMounted(true) }, [])
 
@@ -135,20 +141,28 @@ export default function MarketplaceClient({ products, categories, activeCategory
 
     const applySearch = useCallback(() => {
         setSearchQuery(searchInput.trim())
+        setCurrentPage(1)
     }, [searchInput])
 
     const clearSearch = useCallback(() => {
         setSearchInput('')
         setSearchQuery('')
+        setCurrentPage(1)
     }, [])
+
+    const totalPages = Math.ceil(filteredProducts.length / ITEMS_PER_PAGE)
+    const paginatedProducts = useMemo(() => {
+        const start = (currentPage - 1) * ITEMS_PER_PAGE
+        return filteredProducts.slice(start, start + ITEMS_PER_PAGE)
+    }, [filteredProducts, currentPage])
 
     useEffect(() => {
         if (!allowPrefetch) return
         // Prefetch top visible product routes so first click feels instant.
-        products.slice(0, 4).forEach((p) => {
+        paginatedProducts.slice(0, 4).forEach((p) => {
             prefetch(`/marketplace/${p.id}`)
         })
-    }, [allowPrefetch, prefetch, products])
+    }, [allowPrefetch, prefetch, paginatedProducts])
 
     useEffect(() => {
         const interval = window.setInterval(() => {
@@ -413,16 +427,48 @@ export default function MarketplaceClient({ products, categories, activeCategory
                         )}
                     </div>
                 ) : (
-                    <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3 xl:grid-cols-4">
-                        {filteredProducts.map((product, index) => (
-                            <ProductCard
-                                key={product.id}
-                                product={product}
-                                index={index}
-                                priority={index < 4} // Priority load first 4 images
-                            />
-                        ))}
-                    </div>
+                    <>
+                        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+                            {paginatedProducts.map((product, index) => (
+                                <ProductCard
+                                    key={product.id}
+                                    product={product}
+                                    index={index}
+                                    priority={index < 4} // Priority load first 4 images
+                                />
+                            ))}
+                        </div>
+
+                        {totalPages > 1 && (
+                            <div className="mt-12 flex flex-wrap items-center justify-center gap-4 sm:gap-6">
+                                <button
+                                    onClick={() => {
+                                        setCurrentPage(p => Math.max(1, p - 1))
+                                        window.scrollTo({ top: 0, behavior: 'smooth' })
+                                    }}
+                                    disabled={currentPage === 1}
+                                    className="rounded-xl border-[3px] border-black bg-[#FFD93D] px-4 py-2 sm:px-6 sm:py-2.5 text-xs sm:text-sm font-black uppercase tracking-widest text-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all hover:-translate-y-1 hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-gray-200 disabled:hover:translate-y-0 disabled:hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"
+                                >
+                                    Prev
+                                </button>
+                                
+                                <span className="rounded-xl border-[3px] border-black bg-white px-4 py-2 sm:px-5 sm:py-2.5 text-xs sm:text-sm font-black uppercase tracking-widest text-charcoal shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+                                    Page {currentPage} of {totalPages}
+                                </span>
+                                
+                                <button
+                                    onClick={() => {
+                                        setCurrentPage(p => Math.min(totalPages, p + 1))
+                                        window.scrollTo({ top: 0, behavior: 'smooth' })
+                                    }}
+                                    disabled={currentPage === totalPages}
+                                    className="rounded-xl border-[3px] border-black bg-[#FFD93D] px-4 py-2 sm:px-6 sm:py-2.5 text-xs sm:text-sm font-black uppercase tracking-widest text-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all hover:-translate-y-1 hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-gray-200 disabled:hover:translate-y-0 disabled:hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"
+                                >
+                                    Next
+                                </button>
+                            </div>
+                        )}
+                    </>
                 )}
             </div>
         </div>
