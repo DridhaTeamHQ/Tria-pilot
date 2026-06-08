@@ -539,7 +539,9 @@ export async function runPhotoshoot(input: PhotoshootInput): Promise<PhotoshootR
   // round-trips. That cannot finish in 300s. We now (a) shrink the pool and
   // (b) gate every extra generation on a wall-clock deadline so the pipeline
   // always returns BEFORE Vercel kills it.
-  const DEADLINE_MS = Number(process.env.PHOTOSHOOT_DEADLINE_MS) || 235_000
+  // Default leaves ~65s buffer under the 800s function limit (Fluid Compute).
+  // Override with PHOTOSHOOT_DEADLINE_MS if your function maxDuration differs.
+  const DEADLINE_MS = Number(process.env.PHOTOSHOOT_DEADLINE_MS) || 735_000
   const elapsed = () => Date.now() - t0
   // Rough cost of one more generation+restore round (parallel). If less than
   // this remains before the deadline, we do NOT launch more work.

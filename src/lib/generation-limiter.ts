@@ -226,11 +226,11 @@ export interface SessionLockResult {
     existingRequestId?: string
 }
 
-// A genuine generation runs inline for up to maxDuration (300s on Vercel
-// Pro). The session lock MUST outlive that, or a second click mid-run
-// would steal the lock and start a duplicate generation. Default 360s;
-// override with TRYON_SESSION_LOCK_TTL_MS.
-const SESSION_LOCK_TTL_MS = parseInt(process.env.TRYON_SESSION_LOCK_TTL_MS || '360000')
+// A genuine generation runs inline for up to maxDuration (800s with Fluid
+// Compute). The session lock MUST outlive that, or a second click mid-run
+// would steal the lock and start a duplicate generation. Default 830s
+// (> the 800s function limit); override with TRYON_SESSION_LOCK_TTL_MS.
+const SESSION_LOCK_TTL_MS = parseInt(process.env.TRYON_SESSION_LOCK_TTL_MS || '830000')
 
 function acquireSessionLock(userId: string, requestId: string): SessionLockResult {
     const existingLock = sessionLockStore.get(userId)

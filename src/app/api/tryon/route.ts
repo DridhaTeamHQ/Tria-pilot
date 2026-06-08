@@ -38,7 +38,7 @@ import { ZodError } from 'zod'
 // Prevents queue from growing unboundedly during traffic spikes.
 const MAX_QUEUE_DEPTH = parseInt(process.env.TRYON_MAX_QUEUE_DEPTH || '50', 10)
 
-export const maxDuration = 300
+export const maxDuration = 800
 // Limiter stack is OFF BY DEFAULT (active-job lock, global limit, Redis
 // lock, generation gate). Set TRYON_RATE_LIMIT_DISABLED=false explicitly
 // to re-enable cost protection before real public traffic.

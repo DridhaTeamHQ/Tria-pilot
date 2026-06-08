@@ -20,7 +20,7 @@ import { processTryOnJob } from '@/lib/tryon/process-job'
 import { GeminiRateLimitError } from '@/lib/gemini/executor'
 
 // Each job runs in its own Vercel function with full 5-minute budget.
-export const maxDuration = 300
+export const maxDuration = 800
 
 // Don't cache — every invocation processes a different job.
 export const dynamic = 'force-dynamic'

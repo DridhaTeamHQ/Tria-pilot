@@ -21,7 +21,7 @@ import { runPhotoshoot, isPhotoshootSlotSuccess } from '@/lib/tryon/photoshoot-p
 import { checkGenerationGate, completeGeneration } from '@/lib/generation-limiter'
 
 export const dynamic = 'force-dynamic'
-export const maxDuration = 300
+export const maxDuration = 800
 
 // Same master switch as the clothing-swap route. Limiter is OFF unless the env
 // is explicitly the string "false" (i.e. limits enabled) AND we're in prod or
