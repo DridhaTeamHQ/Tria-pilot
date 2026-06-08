@@ -44,12 +44,23 @@ import {
 } from '@/lib/tryon/identity-composition-check'
 
 const isDev = process.env.NODE_ENV !== 'production'
+// Identity/composition guard.
+//   'soft'   (DEFAULT): assess the output and LOG warnings, but always return
+//            the image. Never throws, never retries.
+//   'strict': throw on low scores → triggers regeneration retries. This is a
+//            504 MACHINE: a strict reject on a Gemini-primary slot falls
+//            through to FLUX, which validates + retries up to 3× — each a full
+//            generation + a GPT-4o vision assessment. 3 slots doing that blows
+//            the 300s function limit and returns an ERROR instead of the
+//            usable image it threw away. Opt into strict only with plenty of
+//            time budget (async/QStash) — never on the inline path.
+//   'off':   skip assessment entirely.
 const IDENTITY_GUARD_MODE: 'off' | 'soft' | 'strict' =
   process.env.TRYON_IDENTITY_GUARD_MODE === 'off'
     ? 'off'
-    : process.env.TRYON_IDENTITY_GUARD_MODE === 'soft'
-      ? 'soft'
-      : 'strict'
+    : process.env.TRYON_IDENTITY_GUARD_MODE === 'strict'
+      ? 'strict'
+      : 'soft'
 
 function readGuardThreshold(name: string, fallback: number): number {
   const raw = process.env[name]
@@ -597,7 +608,14 @@ export async function runCleanTryOn(input: CleanTryOnInput): Promise<CleanTryOnR
     // keeps FLUX as the engine. If Gemini fails or returns empty we fall
     // through to the FLUX path below as a safety net. Optional
     // TRYON_RENDER_MODEL picks the Gemini model.
-    const primaryEngine = (process.env.TRYON_ENGINE || '').trim().toLowerCase()
+    // ENGINE DEFAULT: Gemini (Nano Banana). FLUX has HARD content moderation
+    // that blocks licensed-graphic apparel (Superman, Venom, Marvel, anime,
+    // skull prints) and safety_tolerance can't override it — that's what
+    // produced the "IMAGE BLOCKED" errors. Gemini accepts those. So Gemini is
+    // now the primary clothing-swap engine UNLESS TRYON_ENGINE=flux is set
+    // explicitly. FLUX remains available as a safety-net fallback below.
+    const engineEnv = (process.env.TRYON_ENGINE || '').trim().toLowerCase()
+    const primaryEngine = engineEnv === 'flux' ? 'flux' : 'gemini'
     if (primaryEngine === 'gemini') {
       try {
         if (isDev) console.log(`🍌 [clean] Slot ${idx + 1} → Gemini primary (TRYON_ENGINE=gemini)`)

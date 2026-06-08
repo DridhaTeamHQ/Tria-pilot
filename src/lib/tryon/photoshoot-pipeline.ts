@@ -532,41 +532,50 @@ export async function runPhotoshoot(input: PhotoshootInput): Promise<PhotoshootR
     }
   }
 
-  // BEST-OF-N AUTO-CURATION (research-universal "batch and curate"):
-  // when InsightFace gives us a per-image identity-similarity score, generate a
-  // few EXTRA variants, then keep the highest-matching ones. Beats the 10-20%
-  // drift everyone hits, automatically. Without the swap (no score) we just
-  // generate the target count.
-  //
-  // Pool size bumped from +2 to +3 — a wider candidate pool gives the
-  // similarity sorter more options to find a high-match output. Capped at 7
-  // total so per-request cost stays bounded.
+  // ── DEADLINE BUDGET ──────────────────────────────────────────────────
+  // Vercel kills the function at maxDuration (300s) → FUNCTION_INVOCATION_
+  // TIMEOUT (504). The OLD pool (variantCount+3, up to 7) PLUS an
+  // unconditional +2 re-roll = up to 9 Gemini generations + 9 InsightFace
+  // round-trips. That cannot finish in 300s. We now (a) shrink the pool and
+  // (b) gate every extra generation on a wall-clock deadline so the pipeline
+  // always returns BEFORE Vercel kills it.
+  const DEADLINE_MS = Number(process.env.PHOTOSHOOT_DEADLINE_MS) || 235_000
+  const elapsed = () => Date.now() - t0
+  // Rough cost of one more generation+restore round (parallel). If less than
+  // this remains before the deadline, we do NOT launch more work.
+  const ONE_ROUND_MS = Number(process.env.PHOTOSHOOT_ROUND_BUDGET_MS) || 70_000
+
+  // BEST-OF-N AUTO-CURATION: generate a SMALL spare pool when face-restore is
+  // on, then keep the highest-similarity outputs. Spare reduced from +3 to +1
+  // (capped at variantCount+2 via env) — a 4-image pool for a 3-output request
+  // gives the similarity sorter a real choice while staying comfortably inside
+  // the 300s budget. Without face-restore (no scores) we generate exactly the
+  // target count.
   const curate = FACE_RESTORE_ENABLED && variantCount >= 1
-  const poolCount = curate ? Math.min(variantCount + 3, 7) : variantCount
+  const spare = curate ? Math.max(0, Math.min(2, Number(process.env.PHOTOSHOOT_CURATION_SPARE) || 1)) : 0
+  const poolCount = variantCount + spare
 
   let allSlots = await Promise.all(
     Array.from({ length: poolCount }, (_, i) => runVariant(i)),
   )
 
-  // AUTO RE-ROLL on low similarity. When InsightFace IS running but every
-  // variant came back with poor identity match (best < 0.5), keeping the
-  // least-bad still ships a face that drifted. Instead, generate 2 extra
-  // variants with a stronger identity-focused prompt and merge them in
-  // before curating. Only fires when face restore is enabled and we have
-  // similarity scores to judge by — caps the extra cost at 2 variants and
-  // ~25-30s additional wall time, well within the 300s function budget.
+  // AUTO RE-ROLL on low similarity — but DEADLINE-GATED and only ONE extra.
+  // When InsightFace is running but the best variant still drifted
+  // (similarity < threshold), generate a SINGLE extra variant with a
+  // maximum-strength identity prompt — but only if there's enough time left
+  // before the deadline. This is what previously blew the 300s limit (it
+  // fired 2 extra unconditionally); now it's bounded.
   if (curate) {
     const scoredSuccesses = allSlots
       .filter(isPhotoshootSlotSuccess)
       .map((s) => s.faceSimilarity)
       .filter((v): v is number => typeof v === 'number')
     const bestSoFar = scoredSuccesses.length ? Math.max(...scoredSuccesses) : null
-    if (bestSoFar !== null && bestSoFar < PHOTOSHOOT_REROLL_MIN_FACE_SIMILARITY) {
-      console.warn(`🔁 [photoshoot] best similarity ${bestSoFar.toFixed(2)} < ${PHOTOSHOOT_REROLL_MIN_FACE_SIMILARITY.toFixed(2)} — auto re-rolling 2 extra variants with stronger identity prompt`)
-      // Override buildPrompt for re-rolls by wrapping the variant runner.
+    const haveBudget = elapsed() + ONE_ROUND_MS < DEADLINE_MS
+    if (bestSoFar !== null && bestSoFar < PHOTOSHOOT_REROLL_MIN_FACE_SIMILARITY && haveBudget) {
+      console.warn(`🔁 [photoshoot] best similarity ${bestSoFar.toFixed(2)} < ${PHOTOSHOOT_REROLL_MIN_FACE_SIMILARITY.toFixed(2)} — re-rolling 1 extra variant (${Math.round(elapsed() / 1000)}s elapsed, budget ok)`)
       const reRollVariant = async (variant: number): Promise<PhotoshootSlot | PhotoshootFailure> => {
         const slotStart = Date.now()
-        // Pre-pend a maximum-strength identity directive to the regular prompt.
         const basePrompt = buildPrompt(variant)
         const strongerPrompt =
           `MAXIMUM IDENTITY LOCK — the face/head in the output MUST be the exact person from the reference images. Do NOT generate a "similar looking" or "model-style" face. The previous attempts drifted; this attempt must match feature-for-feature: same nose width and bridge, same eye spacing, same jawline curvature, same lip shape, same hairline, same facial hair. Reproduce the real person, not an idealized version.\n\n` +
@@ -588,11 +597,10 @@ export async function runPhotoshoot(input: PhotoshootInput): Promise<PhotoshootR
           return { variant, presetId, prompt: strongerPrompt, error: msg.slice(0, 400), durationMs: Date.now() - slotStart }
         }
       }
-      const reRolls = await Promise.all([
-        reRollVariant(poolCount),
-        reRollVariant(poolCount + 1),
-      ])
-      allSlots = [...allSlots, ...reRolls]
+      const reRoll = await reRollVariant(poolCount)
+      allSlots = [...allSlots, reRoll]
+    } else if (bestSoFar !== null && bestSoFar < PHOTOSHOOT_REROLL_MIN_FACE_SIMILARITY) {
+      console.warn(`⏱️ [photoshoot] skipping re-roll — only ${Math.round((DEADLINE_MS - elapsed()) / 1000)}s left before deadline (need ${Math.round(ONE_ROUND_MS / 1000)}s)`)
     }
   }
 
@@ -603,54 +611,44 @@ export async function runPhotoshoot(input: PhotoshootInput): Promise<PhotoshootR
     // Rank by face similarity (highest first); slots without a score sink last.
     successes.sort((a, b) => (b.faceSimilarity ?? -1) - (a.faceSimilarity ?? -1))
     const scored = successes.filter((s): s is PhotoshootSlot & { faceSimilarity: number } => typeof s.faceSimilarity === 'number')
-    const rejectedForIdentity: PhotoshootFailure[] = scored
-      .filter((slot) => slot.faceSimilarity < PHOTOSHOOT_HARD_MIN_FACE_SIMILARITY)
-      .map((slot) => ({
-        variant: slot.variant,
-        presetId: slot.presetId,
-        prompt: slot.prompt,
-        error: `Rejected by photoshoot face consistency guard: similarity ${slot.faceSimilarity.toFixed(2)} < ${PHOTOSHOOT_HARD_MIN_FACE_SIMILARITY.toFixed(2)}. Facial structure drifted too far from the source.`,
-        durationMs: slot.durationMs,
-      }))
-    const unscoredValidationFailures: PhotoshootFailure[] =
-      successes.length > 0 && scored.length === 0
-        ? successes.map((slot) => ({
-            variant: slot.variant,
-            presetId: slot.presetId,
-            prompt: slot.prompt,
-            error: 'Rejected by photoshoot face consistency guard: face validation score unavailable, so identity could not be confirmed safely.',
-            durationMs: slot.durationMs,
-          }))
-        : []
-    const kept = scored
-      .filter((slot) => slot.faceSimilarity >= PHOTOSHOOT_HARD_MIN_FACE_SIMILARITY)
-      .slice(0, variantCount)
-    // Re-index so the UI shows clean "Look 1/2/3".
-    kept.forEach((s, i) => { s.variant = i })
 
-    // Always log similarity scores, not just in dev — these are the single
-    // most important diagnostic for face-consistency complaints.
-    const scores = successes.map((s) => s.faceSimilarity).filter((v): v is number => typeof v === 'number')
+    // Always log similarity scores — the single most important diagnostic.
+    const scores = scored.map((s) => s.faceSimilarity)
     if (scores.length) {
       const best = Math.max(...scores)
       const avg = scores.reduce((a, b) => a + b, 0) / scores.length
       const allStr = successes.map((s) => (s.faceSimilarity ?? 0).toFixed(2)).join(', ')
-      console.log(`🏆 [photoshoot] curated ${kept.length}/${successes.length} — similarities: [${allStr}] best=${best.toFixed(2)} avg=${avg.toFixed(2)}`)
-      // Loud warning when even the BEST variant is a poor identity match —
-      // means face-swap is on but Gemini's source faces are too far off.
-      // Common causes: face-crop too small, reference photo low-res, or
-      // InsightFace service unhealthy and silently degrading.
+      console.log(`🏆 [photoshoot] ${successes.length} successes — similarities: [${allStr}] best=${best.toFixed(2)} avg=${avg.toFixed(2)}`)
       if (best < PHOTOSHOOT_WARN_MIN_FACE_SIMILARITY) {
         console.warn(`⚠️ [photoshoot] LOW IDENTITY MATCH — best similarity ${best.toFixed(2)} < ${PHOTOSHOOT_WARN_MIN_FACE_SIMILARITY.toFixed(2)}. Faces will look almost right but drift. Check FACE_SWAP_SERVICE_URL health and face-crop quality.`)
       }
-    } else {
-      // No InsightFace scores at all → face-swap silently skipped every variant.
-      // This is the #1 cause of "faces don't match" complaints in prod.
-      console.warn(`⚠️ [photoshoot] NO face-similarity scores returned across ${successes.length} variants — InsightFace is NOT running. Faces will drift. Verify FACE_SWAP_SERVICE_URL is set and the Render service is awake.`)
+    } else if (successes.length) {
+      console.warn(`⚠️ [photoshoot] NO face-similarity scores across ${successes.length} variants — InsightFace is NOT running. Faces may drift. Verify FACE_SWAP_SERVICE_URL is set and the Render service is awake.`)
     }
-    selections = kept.length ? kept : [...rejectedForIdentity, ...unscoredValidationFailures, ...failures].slice(0, variantCount)
-    // If everything failed, still surface the failures so the caller sees why.
-    if (!kept.length && failures.length && selections.length === 0) selections = failures.slice(0, variantCount)
+
+    // ── GUARANTEE A RESULT — never return zero images when Gemini succeeded ──
+    // The face-similarity bar is a PREFERENCE, not a hard gate. We rank by
+    // similarity and prefer variants that clear PHOTOSHOOT_HARD_MIN, but if
+    // not enough clear it (or InsightFace returned no scores at all) we top up
+    // with the best remaining successes so the user ALWAYS gets up to
+    // variantCount images. "A slightly-drifted photo" beats "an error screen".
+    // Only a total generation failure (zero successes) surfaces an error.
+    const passing = scored.filter((s) => s.faceSimilarity >= PHOTOSHOOT_HARD_MIN_FACE_SIMILARITY)
+    const kept: PhotoshootSlot[] = passing.slice(0, variantCount)
+    if (kept.length < variantCount) {
+      const keptSet = new Set<PhotoshootSlot>(kept)
+      // successes are already sorted best-first; take the best not-yet-kept.
+      for (const s of successes) {
+        if (kept.length >= variantCount) break
+        if (!keptSet.has(s)) { kept.push(s); keptSet.add(s) }
+      }
+    }
+    // Re-index so the UI shows clean "Look 1/2/3".
+    kept.forEach((s, i) => { s.variant = i })
+    console.log(`🏆 [photoshoot] returning ${kept.length} image(s) (${passing.length} cleared the ${PHOTOSHOOT_HARD_MIN_FACE_SIMILARITY.toFixed(2)} identity bar, rest are best-effort top-ups)`)
+
+    // Only fall back to surfacing failures when NOTHING generated successfully.
+    selections = kept.length ? kept : failures.slice(0, variantCount)
   } else {
     selections = allSlots.slice(0, variantCount)
   }
