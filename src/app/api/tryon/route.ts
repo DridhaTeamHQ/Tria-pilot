@@ -39,11 +39,10 @@ import { ZodError } from 'zod'
 const MAX_QUEUE_DEPTH = parseInt(process.env.TRYON_MAX_QUEUE_DEPTH || '50', 10)
 
 export const maxDuration = 300
-// Limiter stack is OFF BY DEFAULT (active-job lock, global limit, Redis
-// lock, generation gate). Set TRYON_RATE_LIMIT_DISABLED=false explicitly
-// to re-enable cost protection before real public traffic.
-const TRYON_RATE_LIMIT_DISABLED =
-  process.env.TRYON_RATE_LIMIT_DISABLED !== 'false'
+// Keep the website-side limiter stack disabled so the old inline try-on
+// experience stays available. Upstream model overloads are surfaced as
+// provider-busy errors instead of local cooldown / lockout UI.
+const TRYON_RATE_LIMIT_DISABLED = true
 const USER_LOCK_TTL_SECONDS = Math.max(120, maxDuration + 30)
 const GLOBAL_ACTIVE_TTL_SECONDS = USER_LOCK_TTL_SECONDS
 const ACTIVE_JOB_LOOKBACK_MS = USER_LOCK_TTL_SECONDS * 1000
@@ -1103,8 +1102,8 @@ async function handlePresetlessTryOnRequest(params: {
     // ── CLEAN PIPELINE ────────────────────────────────────────────────
     // 1. Extract garment (already done above as `processedGarment`)
     // 2. GPT-4o orchestrator picks 3 photos + writes prompts
-    // 3. FLUX-2 [pro] runs 3 swaps in parallel
-    // No fallback chains, no quality validators, no multi-engine madness.
+    // 3. Gemini runs 3 swaps in parallel
+    // Keep this path single-engine and lightweight.
     const successfulOutputs: PresetlessPersistedOutput[] = []
     const failedAttempts: Array<{ referenceImageId: string; error: string }> = []
     const targetOutputCount = 3
@@ -1885,11 +1884,11 @@ export async function POST(request: Request) {
       const retryAfterSeconds = Math.min(60, Math.ceil((error.retryAfterMs || 30_000) / 1000)) || 30
       return NextResponse.json(
         {
-          error: error.message || 'Rate limit reached. Please retry shortly.',
-          code: 'RATE_LIMIT',
+          error: 'Our AI provider is busy right now. Please try again in a moment.',
+          code: 'UPSTREAM_OVERLOADED',
           retryAfterSeconds,
         },
-        { status: 429, headers: { 'Retry-After': String(retryAfterSeconds), 'Cache-Control': 'no-store' } }
+        { status: 503, headers: { 'Retry-After': String(retryAfterSeconds), 'Cache-Control': 'no-store' } }
       )
     }
     // Catches GeminiTimeoutError, safety blocks, quota errors, etc.
