@@ -723,14 +723,20 @@ async function handlePresetlessTryOnRequest(params: {
   //      cleaned-up garment image)
   // Running #1 and #2 in parallel saves ~50-100ms on every request.
   const t0 = Date.now()
+  // GARMENT EXTRACTION (the core clothing-swap step):
+  // When the PRODUCT image shows a model WEARING the garment, extract a clean
+  // garment-only image FIRST — otherwise the swap copies the product model's
+  // body/face/styling onto the influencer instead of just the clothing. The
+  // preprocessor auto-detects a human and only extracts when one is present;
+  // flat-lay product photos pass straight through (no extra cost). This is
+  // ONE upfront Gemini image call when a model is present (~5-15s), gated so
+  // it can be disabled with TRYON_GARMENT_EXTRACTION=false.
+  const garmentExtractionDisabled = process.env.TRYON_GARMENT_EXTRACTION === 'false'
   const [preprocessSettled, productTextSettled, strictProfileSettled] = await Promise.allSettled([
-    // Pure passthrough: body detection + extraction were costing 15-25s on
-    // every request (and most of that was timeouts when Gemini is slow).
-    // The GPT-4o vision orchestrator already handles "ignore styling on
-    // the model, focus on the garment" via its system prompt, so we don't
-    // need server-side extraction. Net savings: 15-25s per request.
     preprocessGarmentImage(rawGarmentBase64, {
-      skipPreprocessing: true,
+      skipPreprocessing: garmentExtractionDisabled,
+      fast: true,
+      model: 'flash',
       sessionId: `tryon-${Date.now()}`,
     }),
     payload.productId

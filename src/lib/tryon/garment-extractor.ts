@@ -54,8 +54,20 @@ function buildExtractionPrompt(garmentAnalysis?: GarmentAnalysis): string {
 ${garmentTypeHint}
 
 ══════════════════════════════════════════════════════════════════════════════
-TASK: Create a GARMENT-ONLY flat-lay image from this clothing photo.
+TASK: Create a GARMENT-ONLY flat-lay image of EVERY clothing item the person
+is wearing, from this photo.
 ══════════════════════════════════════════════════════════════════════════════
+
+0️⃣ CAPTURE THE COMPLETE OUTFIT (MANDATORY):
+   ✓ If the person wears MULTIPLE pieces — e.g. a TOP and a BOTTOM (shirt +
+     pants, t-shirt + jeans, kurta + trousers, blouse + skirt) — extract and
+     present ALL of them together as a complete outfit, each piece fully
+     visible (top above, bottom below, like a laid-out flat-lay set).
+   ✓ Include outer layers (jacket/shirt worn open over a tee) AND the inner
+     layer, and any visible bottom. Do NOT drop the bottoms, do NOT drop a layer.
+   ✓ If the person wears only ONE garment (e.g. a dress or just a top), output
+     just that one garment — do not invent a missing piece.
+   ✓ Preserve each piece's true colour, pattern, length and fit exactly.
 
 1️⃣ REMOVE ALL HUMAN ANATOMY (MANDATORY):
    ✗ NO head
@@ -70,7 +82,7 @@ TASK: Create a GARMENT-ONLY flat-lay image from this clothing photo.
    ✗ NO skin visible
    ✗ NO mannequin parts
 
-   The output must contain ONLY THE GARMENT.
+   The output must contain ONLY THE GARMENT(S) — no person, just the clothing.
 
 2️⃣ PRESERVE GARMENT FIDELITY (CRITICAL — DO NOT ALTER):
    
@@ -101,11 +113,13 @@ TASK: Create a GARMENT-ONLY flat-lay image from this clothing photo.
    ✓ EXACT design details (pleats, ruffles, pockets)
 
 3️⃣ OUTPUT FORMAT REQUIREMENTS:
-   • Floating garment (as if on invisible form)
+   • Floating garment(s) (as if on an invisible form)
+   • When there are multiple pieces, lay them out together in ONE image —
+     top above, bottom below — with EVERY piece fully in frame, none cropped
    • Clean white or light grey background (no gradients)
    • Front-facing presentation
    • Slight natural drape (gravity effect only)
-   • All design details clearly visible
+   • All design details of EVERY piece clearly visible
    • No harsh shadows
    • No artificial lighting effects added
 
