@@ -490,6 +490,15 @@ export async function runCleanTryOn(input: CleanTryOnInput): Promise<CleanTryOnR
   if (isDev) console.log('🎨 [clean] Step 3: FLUX-2 [pro] swaps (3 parallel)')
   const swapStart = Date.now()
 
+  // ── CREDIT GUARD — hard cap on FLUX generations per request ──────────
+  // Retry loops + recovery-photo loops + moderation recovery can otherwise
+  // fan ONE request out to 25-30 FLUX submits when generations fail, burning
+  // credits fast. This budget guarantees a request NEVER exceeds a fixed
+  // number of FLUX calls no matter how the loops compound. Default 5
+  // (3 outputs + 2 recovery); override with TRYON_MAX_FLUX_CALLS.
+  const MAX_FLUX_CALLS = Math.max(3, Number(process.env.TRYON_MAX_FLUX_CALLS) || 5)
+  let fluxCallsUsed = 0
+
   const photoLookup = new Map(input.candidatePhotos.map((p) => [p.id, p.base64]))
 
   // FLUX needs explicit width/height. Mirror the input photo's dimensions so
@@ -658,11 +667,18 @@ export async function runCleanTryOn(input: CleanTryOnInput): Promise<CleanTryOnR
         ]
       : [personBase64, cleanedGarment, personBase64]
 
-    const MAX_ATTEMPTS = Math.max(2, Number(process.env.TRYON_SLOT_MAX_ATTEMPTS) || 3)
+    const MAX_ATTEMPTS = Math.max(1, Number(process.env.TRYON_SLOT_MAX_ATTEMPTS) || 2)
     let lastErr = 'unknown error'
     for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+      // CREDIT GUARD — never exceed the per-request FLUX budget.
+      if (fluxCallsUsed >= MAX_FLUX_CALLS) {
+        lastErr = `FLUX call budget reached (${MAX_FLUX_CALLS}/request) — skipping to protect credits`
+        if (isDev) console.warn(`💳 [clean] Slot ${idx + 1} skipped — ${lastErr}`)
+        break
+      }
       try {
-        if (isDev) console.log(`🎨 [clean] Slot ${idx + 1} → FLUX-2 [pro]${attempt > 1 ? ` (retry ${attempt})` : ''}`)
+        if (isDev) console.log(`🎨 [clean] Slot ${idx + 1} → FLUX-2 [pro]${attempt > 1 ? ` (retry ${attempt})` : ''} [${fluxCallsUsed + 1}/${MAX_FLUX_CALLS}]`)
+        fluxCallsUsed++
         const result = await flux2Generate({
           prompt: fluxPrompt,
           inputImages: fluxInputs,
@@ -735,9 +751,10 @@ export async function runCleanTryOn(input: CleanTryOnInput): Promise<CleanTryOnR
     // interpretation, not the exact licensed art) but it UNBLOCKS the result.
     // Toggle with TRYON_MODERATION_RECOVERY=false.
     const moderationBlocked = /moderat|content.*(block|moderat)|safety|request moderated/i.test(lastErr)
-    if (moderationBlocked && process.env.TRYON_MODERATION_RECOVERY !== 'false') {
+    if (moderationBlocked && process.env.TRYON_MODERATION_RECOVERY !== 'false' && fluxCallsUsed < MAX_FLUX_CALLS) {
       try {
-        if (isDev) console.log(`🛡️ [clean] Slot ${idx + 1} moderation-blocked — FLUX recovery with sanitized description (no garment image)`)
+        if (isDev) console.log(`🛡️ [clean] Slot ${idx + 1} moderation-blocked — FLUX recovery with sanitized description [${fluxCallsUsed + 1}/${MAX_FLUX_CALLS}]`)
+        fluxCallsUsed++
         const generic = await describeGarmentGenerically({
           productText: input.productText,
           garmentDescription: intel?.description,
@@ -823,6 +840,13 @@ export async function runCleanTryOn(input: CleanTryOnInput): Promise<CleanTryOnR
 
   for (const selection of recoverySelections) {
     if (slots.filter(isCleanTryOnSlotSuccess).length >= targetOutputCount) break
+    // CREDIT GUARD — stop launching recovery generations once the per-request
+    // FLUX budget is spent. This is what bounds the recovery loop (it used to
+    // retry over EVERY remaining photo, the biggest credit amplifier).
+    if (fluxCallsUsed >= MAX_FLUX_CALLS) {
+      if (isDev) console.warn(`💳 [clean] recovery loop stopped — FLUX budget ${MAX_FLUX_CALLS} reached`)
+      break
+    }
     if (attemptedPhotoIds.has(selection.photoId) || successfulPhotoIds.has(selection.photoId)) continue
     attemptedPhotoIds.add(selection.photoId)
     const recovered = await runFluxSlot(selection, slots.length)

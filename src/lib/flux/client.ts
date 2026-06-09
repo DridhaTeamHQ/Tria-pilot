@@ -67,6 +67,10 @@ let cachedKeyPool: string[] | null = null
 const keyInFlight = new Map<string, number>()
 /** Wall-clock ms when each key becomes usable again (set on 429/quota errors). */
 const keyCooldownUntil = new Map<string, number>()
+/** Keys that returned 402 "insufficient credits" — depleted accounts. Used to
+ *  surface an HONEST "out of credits" error instead of a vague "pool saturated"
+ *  one when every key is broke. Cleared if a key later succeeds. */
+const keyCreditDepleted = new Set<string>()
 
 /** Per-key concurrent-job ceiling. BFL allows ~24/key; we stay conservative. */
 const PER_KEY_MAX = Number(process.env.FLUX_PER_KEY_MAX || 3)
@@ -110,10 +114,25 @@ function isKeyCoolingDown(key: string): boolean {
 /**
  * Mark a key as rate-limited for KEY_COOLDOWN_MS. Called externally when
  * the FLUX API returns 429 / quota errors so we stop hammering that key.
+ * Pass reason:'credit' for 402 (no credits) so we can surface an honest
+ * "out of credits" error when the whole pool is depleted.
  */
-export function markFluxKeyCooldown(key: string, durationMs?: number): void {
+export function markFluxKeyCooldown(key: string, durationMs?: number, reason?: 'rate' | 'credit'): void {
   const until = Date.now() + (durationMs || KEY_COOLDOWN_MS)
   keyCooldownUntil.set(key, until)
+  if (reason === 'credit') keyCreditDepleted.add(key)
+}
+
+/** Clear depletion/cooldown state for a key that just succeeded. */
+function markFluxKeyHealthy(key: string): void {
+  keyCreditDepleted.delete(key)
+  keyCooldownUntil.delete(key)
+}
+
+/** True when EVERY key in the pool is currently flagged out-of-credits (402). */
+function allKeysOutOfCredits(): boolean {
+  const pool = loadKeyPool()
+  return pool.length > 0 && pool.every((k) => keyCreditDepleted.has(k))
 }
 
 /** Total slots available across the pool, considering cooldowns. */
@@ -196,6 +215,17 @@ export async function acquireFluxKey(): Promise<{ key: string; release: () => vo
     throw new FluxError('No FLUX API keys configured (set FLUX_API_KEY or FLUX_API_KEYS)')
   }
 
+  // HONEST FAST-FAIL: if every key is flagged out-of-credits, don't make the
+  // user wait 60s for a "pool saturated" timeout — tell them the truth now.
+  // This is NON-retryable (402) so the UI shows "out of credits / top up
+  // billing" instead of the misleading "AI at full capacity, try again in 5s".
+  if (allKeysOutOfCredits()) {
+    throw new FluxError(
+      'All FLUX API keys are out of credits. Top up your Black Forest Labs billing to resume image generation.',
+      402,
+    )
+  }
+
   const deadline = Date.now() + ACQUIRE_TIMEOUT_MS
   let attempt = 0
 
@@ -220,6 +250,14 @@ export async function acquireFluxKey(): Promise<{ key: string; release: () => vo
     }
 
     if (Date.now() >= deadline) {
+      // If the reason we couldn't get a slot is that the funded keys all
+      // depleted mid-wait, surface the honest credits error.
+      if (allKeysOutOfCredits()) {
+        throw new FluxError(
+          'All FLUX API keys are out of credits. Top up your Black Forest Labs billing to resume image generation.',
+          402,
+        )
+      }
       throw new FluxError(
         `FLUX pool saturated — all keys at capacity (${totalInFlight()}/${globalCap()} in-flight, ${totalAvailableSlots()} slots available). Try again shortly.`,
         503,
@@ -415,6 +453,7 @@ async function submitAndAwait(
         const result = await pollJob(submitted.id, key, submitted.polling_url)
 
         if (result.status === 'Ready' && result.result?.sample) {
+          markFluxKeyHealthy(key) // clear any stale depletion flag — this key works
           return { imageUrl: result.result.sample, seed: result.result.seed, jobId: submitted.id }
         }
 
@@ -443,8 +482,10 @@ async function submitAndAwait(
       lastErr = err
       // Depleted key (402 no credits) → long cooldown so the pool stops
       // picking it, then rotate to a funded key.
+      if (isInsufficientCreditsError(err)) {
+        markFluxKeyCooldown(key, CREDIT_COOLDOWN_MS, 'credit')
+      }
       if (isInsufficientCreditsError(err) && rotation < MAX_KEY_ROTATIONS - 1) {
-        markFluxKeyCooldown(key, CREDIT_COOLDOWN_MS)
         if (process.env.NODE_ENV !== 'production') {
           console.warn(`💳 FLUX key …${key.slice(-4)} has NO credits — cooling down ${Math.round(CREDIT_COOLDOWN_MS / 60000)}min, rotating to a funded key`)
         }
