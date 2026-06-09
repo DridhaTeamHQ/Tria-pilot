@@ -31,14 +31,15 @@
  */
 
 import 'server-only'
+import sharp from 'sharp'
 import { preprocessGarmentImage } from '@/lib/tryon/garment-preprocessor'
 import { orchestrateTryOn, type PhotoCandidate } from '@/lib/tryon/gpt-orchestrator'
 import { analyzeGarment } from '@/lib/tryon/garment-intel'
 import { buildGarmentEnforcementBlock } from '@/lib/tryon/garment-strict-schema'
-// FLUX is intentionally NOT imported. The try-on swap is PURE GEMINI:
-// FLUX hard-blocks licensed-graphic apparel (Superman/Venom) and was out of
-// credits. All generation goes through generateTryOnDirect (Gemini).
-import { generateTryOnDirect } from '@/lib/nanobanana'
+// PURE FLUX clothing swap. Gemini's prepaid billing is depleted (every Gemini
+// call 429s "prepayment credits are depleted"), FLUX is funded — so the swap
+// runs entirely on FLUX-2 [pro] with NO Gemini anywhere in the path.
+import { flux2Generate, downloadFluxImage } from '@/lib/flux/client'
 import {
   assessIdentityAndComposition,
   type IdentityCompositionAssessment,
@@ -433,15 +434,42 @@ export async function runCleanTryOn(input: CleanTryOnInput): Promise<CleanTryOnR
   }
   if (isDev) console.log(`🎬 [clean] Step 2 done in ${Date.now() - orchestrateStart}ms — ${orchestrated.selections.length} photos`)
 
-  // ── STEP 3: GEMINI SWAPS (3, serialized) ─────────────────────────────
-  // PURE GEMINI. No FLUX anywhere. Each of the 3 slots runs one Gemini
-  // (Nano Banana) swap, and the slots run SEQUENTIALLY (see dispatch below)
-  // so a single Gemini key is never hit by parallel requests — that
-  // concurrent burst was the cause of the "rate limit persisted" 429s.
-  if (isDev) console.log('🎨 [clean] Step 3: Gemini swaps (3, serialized)')
+  // ── STEP 3: FLUX-2 [pro] SWAPS (3 parallel) ──────────────────────────
+  // PURE FLUX. No Gemini anywhere (Gemini billing is depleted). Each of the 3
+  // slots runs an independent FLUX-2 [pro] call; the BFL key pool hands each
+  // parallel call its own FUNDED key (least-busy + 402/429 cooldown), so the
+  // concurrent slots don't contend and depleted keys are skipped.
+  if (isDev) console.log('🎨 [clean] Step 3: FLUX-2 [pro] swaps (3 parallel)')
   const swapStart = Date.now()
 
   const photoLookup = new Map(input.candidatePhotos.map((p) => [p.id, p.base64]))
+
+  // FLUX needs explicit width/height. Mirror the input photo's dimensions so
+  // FLUX preserves framing and doesn't recompose / zoom.
+  const roundTo64 = (n: number) => Math.max(64, Math.round(n / 64) * 64)
+  const MAX_LONG = Math.max(768, Number(process.env.TRYON_MAX_OUTPUT_PX) || 1792)
+  const MAX_PIXELS = 4_000_000
+  const fitMegapixels = (w: number, h: number): { width: number; height: number } => {
+    if (w * h <= MAX_PIXELS) return { width: w, height: h }
+    const areaScale = Math.sqrt(MAX_PIXELS / (w * h))
+    return { width: roundTo64(w * areaScale), height: roundTo64(h * areaScale) }
+  }
+  const detectDims = async (personBase64: string): Promise<{ width: number; height: number }> => {
+    try {
+      const meta = await sharp(Buffer.from(personBase64, 'base64')).metadata()
+      if (meta.width && meta.height) {
+        const scale = Math.min(1, MAX_LONG / Math.max(meta.width, meta.height))
+        return fitMegapixels(roundTo64(meta.width * scale), roundTo64(meta.height * scale))
+      }
+    } catch { /* fall through */ }
+    switch (input.aspectRatio || '4:5') {
+      case '1:1': return { width: 1600, height: 1600 }
+      case '9:16': return { width: 1152, height: 2048 }
+      case '16:9': return { width: 2048, height: 1152 }
+      case '3:4': return { width: 1536, height: 2048 }
+      default: return { width: 1664, height: 2048 }
+    }
+  }
 
   const runFluxSlot = async (
     sel: typeof orchestrated.selections[number],
@@ -566,45 +594,46 @@ export async function runCleanTryOn(input: CleanTryOnInput): Promise<CleanTryOnR
       `Photorealistic, natural fabric drape with realistic shadows; no overlay, sticker, decal or pasted-on effect.`
     ).slice(0, 6000)
 
-    // ── PURE GEMINI SWAP ─────────────────────────────────────────────────
-    // Gemini (Nano Banana) is the ONLY engine — no FLUX anywhere. FLUX hard-
-    // blocks licensed-graphic apparel (Superman/Venom) and was out of credits.
-    // engineOverride:'gemini' forces Gemini regardless of env. A short retry
-    // loop with backoff absorbs transient empty responses / 429 rate limits,
-    // so the (now serialized) slots succeed on a single Gemini key WITHOUT
-    // surfacing "rate limit persisted" / cooldown errors to the user.
-    // GEMINI model ONLY. Never read TRYON_RENDER_MODEL here — it is often set
-    // to an OpenAI model (gpt-image-1.5) for the separate OpenAI Images path,
-    // and passing that to Gemini 404s. Prefer an explicit gemini-* env, else
-    // default to flash.
-    const envGeminiModel = [process.env.TRYON_IMAGE_MODEL, process.env.GEMINI_IMAGE_MODEL]
-      .map((v) => (v || '').trim())
-      .find((v) => /^gemini-/i.test(v))
-    const geminiModel = envGeminiModel || 'gemini-3.1-flash-image-preview'
-    const MAX_ATTEMPTS = Math.max(2, Number(process.env.TRYON_SLOT_MAX_ATTEMPTS) || 2)
+    // ── PURE FLUX-2 [pro] SWAP ───────────────────────────────────────────
+    // FLUX is the ONLY engine. No Gemini fallback (Gemini billing depleted).
+    // The BFL key pool spreads parallel slots across funded keys and skips
+    // depleted (402) keys via cooldown.
+    const dims = await detectDims(personBase64)
+    const seed = (Date.now() % 1_000_000_000) + idx * 9973
+    // person, garment, [face crop], person. Face crop = identity anchor.
+    const fluxInputs = hasFace
+      ? [
+          personBase64,
+          cleanedGarment,
+          faceCropBase64!.replace(/^data:image\/[a-z+]+;base64,/, ''),
+          personBase64,
+        ]
+      : [personBase64, cleanedGarment, personBase64]
+
+    const MAX_ATTEMPTS = Math.max(2, Number(process.env.TRYON_SLOT_MAX_ATTEMPTS) || 3)
     let lastErr = 'unknown error'
     for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
       try {
-        if (isDev) console.log(`🍌 [clean] Slot ${idx + 1} → Gemini${attempt > 1 ? ` (retry ${attempt})` : ''}`)
-        const geminiOut = await generateTryOnDirect({
-          personImageBase64: personBase64,
-          garmentImageBase64: cleanedGarment,
-          faceCropBase64: hasFace ? faceCropBase64 : undefined,
+        if (isDev) console.log(`🎨 [clean] Slot ${idx + 1} → FLUX-2 [pro]${attempt > 1 ? ` (retry ${attempt})` : ''}`)
+        const result = await flux2Generate({
           prompt: fluxPrompt,
-          aspectRatio: undefined,
-          model: geminiModel as any,
-          garmentIntel: intel,
-          // Force Gemini for THIS call regardless of env / FLUX_API_KEY.
-          engineOverride: 'gemini',
-        } as any)
-        if (!geminiOut || geminiOut.length < 100) {
-          throw new Error('Gemini returned an empty image')
-        }
-        let outputBase64 = geminiOut
+          inputImages: fluxInputs,
+          width: dims.width,
+          height: dims.height,
+          outputFormat: 'png',
+          safetyTolerance: 5,
+          timeoutMs: 90_000,
+          model: 'flux-2-pro',
+          seed: seed + attempt,
+        })
+        const downloaded = await downloadFluxImage(result.imageUrl)
+        let outputBase64 = `data:${downloaded.mime};base64,${downloaded.base64}`
+        if (isDev) console.log(`✅ [clean] Slot ${idx + 1} FLUX done in ${Date.now() - slotStart}ms (job ${result.jobId.slice(0, 8)})`)
 
         // ── OPTIONAL FACE-IDENTITY RESTORATION ────────────────────────────
-        // InsightFace inswapper_128 embedding-level face swap. No-op unless
-        // FACE_SWAP_SERVICE_URL is set. Failures degrade gracefully.
+        // InsightFace inswapper_128 embedding-level face swap using the
+        // INFLUENCER's OWN face. No-op unless FACE_SWAP_SERVICE_URL is set.
+        // Failures degrade gracefully (keep the FLUX output).
         if ((process.env.FACE_SWAP_SERVICE_URL || '').trim()) {
           try {
             const { restoreFaceIdentity } = await import('@/lib/tryon/face-restore')
@@ -625,23 +654,25 @@ export async function runCleanTryOn(input: CleanTryOnInput): Promise<CleanTryOnR
 
         // Identity QC on the final output (soft by default → log only).
         const identityAssessment = await validateIdentity(outputBase64)
-        if (isDev) console.log(`✨ [clean] Slot ${idx + 1} done via Gemini in ${Date.now() - slotStart}ms`)
         return {
           photoId: sel.photoId, prompt: sel.prompt, reasoning: sel.reasoning,
-          outputBase64, jobId: `gemini-${Date.now()}-${idx}`,
+          outputBase64, jobId: result.jobId, seed: result.seed,
           identityAssessment: identityAssessment || undefined,
           durationMs: Date.now() - slotStart,
         }
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err)
         lastErr = msg
-        if (attempt >= MAX_ATTEMPTS) {
-          if (isDev) console.warn(`❌ [clean] Slot ${idx + 1} Gemini failed: ${msg.slice(0, 150)}`)
+        // Stop early on user-actionable errors (moderation, out of credits,
+        // auth) — retrying won't help. The key pool already rotates off a
+        // depleted/rate-limited key internally.
+        const isUserActionable = /moderat|safety|insufficient credit|402|401|403/i.test(msg)
+        if (isUserActionable || attempt >= MAX_ATTEMPTS) {
+          if (isDev) console.warn(`❌ [clean] Slot ${idx + 1} FLUX failed: ${msg.slice(0, 150)}`)
           break
         }
-        if (isDev) console.warn(`⚠️ Slot ${idx + 1} Gemini attempt ${attempt} failed: ${msg.slice(0, 120)} — retrying`)
-        // Backoff between retries — absorbs transient 429 / empty responses.
-        await new Promise((r) => setTimeout(r, 2000 + attempt * 2000 + Math.floor(Math.random() * 800)))
+        if (isDev) console.warn(`⚠️ Slot ${idx + 1} FLUX attempt ${attempt} failed: ${msg.slice(0, 120)} — retrying`)
+        await new Promise((r) => setTimeout(r, 1000 + Math.floor(Math.random() * 600)))
       }
     }
 
@@ -651,19 +682,15 @@ export async function runCleanTryOn(input: CleanTryOnInput): Promise<CleanTryOnR
     }
   }
 
-  // SERIALIZED slots — one Gemini request in flight at a time. Firing all 3
-  // in parallel against a single Gemini key is what tripped the 429 rate
-  // limit ("Gemini rate limit persisted after N attempts"). Sequential +
-  // a small stagger keeps the key well under its per-minute limit. With a
-  // 300s function budget, 3 sequential Gemini gens fit comfortably.
+  // PARALLEL slots — FLUX's key pool hands each concurrent call its own funded
+  // key (least-busy selection + 402/429 cooldown), so 3 parallel swaps don't
+  // contend. This is the FLUX advantage over a single Gemini key: real
+  // parallelism with no rate-limit cascade.
   const targetOutputCount = 3
   const initialSelections = orchestrated.selections.slice(0, targetOutputCount)
-  const SLOT_STAGGER_MS = Number(process.env.TRYON_SLOT_STAGGER_MS) || 1200
-  const slots: Array<CleanTryOnSlot | CleanTryOnFailure> = []
-  for (let idx = 0; idx < initialSelections.length; idx++) {
-    if (idx > 0) await new Promise((r) => setTimeout(r, SLOT_STAGGER_MS))
-    slots.push(await runFluxSlot(initialSelections[idx], idx))
-  }
+  const slots: Array<CleanTryOnSlot | CleanTryOnFailure> = await Promise.all(
+    initialSelections.map((sel, idx) => runFluxSlot(sel, idx))
+  )
 
   const successfulPhotoIds = new Set(
     slots.filter(isCleanTryOnSlotSuccess).map((slot) => slot.photoId)

@@ -731,10 +731,16 @@ async function handlePresetlessTryOnRequest(params: {
   // flat-lay product photos pass straight through (no extra cost). This is
   // ONE upfront Gemini image call when a model is present (~5-15s), gated so
   // it can be disabled with TRYON_GARMENT_EXTRACTION=false.
-  const garmentExtractionDisabled = process.env.TRYON_GARMENT_EXTRACTION === 'false'
+  // NOTE: garment extraction uses GEMINI (human detection + garment extract).
+  // Gemini's prepaid billing is currently depleted, so extraction is OFF by
+  // default — enabling it would just fail and fall back to passthrough after
+  // wasting time on 429s. FLUX handles the raw product photo via the
+  // orchestrator's garment-focused prompt. Re-enable with
+  // TRYON_GARMENT_EXTRACTION=true once Gemini prepay is funded.
+  const garmentExtractionEnabled = process.env.TRYON_GARMENT_EXTRACTION === 'true'
   const [preprocessSettled, productTextSettled, strictProfileSettled] = await Promise.allSettled([
     preprocessGarmentImage(rawGarmentBase64, {
-      skipPreprocessing: garmentExtractionDisabled,
+      skipPreprocessing: !garmentExtractionEnabled,
       fast: true,
       model: 'flash',
       sessionId: `tryon-${Date.now()}`,

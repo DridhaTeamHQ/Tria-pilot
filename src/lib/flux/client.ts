@@ -372,14 +372,33 @@ function isRateLimitError(err: unknown): boolean {
   return false
 }
 
+/**
+ * A key with NO credits (402 "Insufficient credits"). These keys are dead for
+ * the rest of the process until topped up — we cool them down for a long
+ * window so the pool stops picking them and uses the funded keys instead.
+ */
+function isInsufficientCreditsError(err: unknown): boolean {
+  if (err instanceof FluxError) {
+    if (err.status === 402) return true
+    const msg = (err.message || '').toLowerCase()
+    if (msg.includes('insufficient credit') || msg.includes('payment required')) return true
+  }
+  return false
+}
+
+/** Depleted keys stay out of rotation this long (default 30 min). */
+const CREDIT_COOLDOWN_MS = Number(process.env.FLUX_CREDIT_COOLDOWN_MS || 30 * 60_000)
+
 async function submitAndAwait(
   model: FluxModel,
   payload: Record<string, unknown>,
   options?: { timeoutMs?: number },
 ): Promise<{ imageUrl: string; seed?: number; jobId: string }> {
-  // Up to 2 key-rotation attempts: if first key returns 429, mark it
-  // cooling-down and try a different key.
-  const MAX_KEY_ROTATIONS = 2
+  // Rotate across the pool on 429 (rate limit) OR 402 (no credits): mark the
+  // bad key cooling-down and try a different one. Rotations scale with pool
+  // size (capped at 6) so a request can skip past several depleted keys to
+  // reach a funded one — important when only some keys have credits.
+  const MAX_KEY_ROTATIONS = Math.max(2, Math.min(6, loadKeyPool().length))
   let lastErr: unknown = null
 
   for (let rotation = 0; rotation < MAX_KEY_ROTATIONS; rotation++) {
@@ -422,6 +441,16 @@ async function submitAndAwait(
       throw new FluxError(`FLUX generation timed out after ${options?.timeoutMs || DEFAULT_TIMEOUT_MS}ms`, 504)
     } catch (err) {
       lastErr = err
+      // Depleted key (402 no credits) → long cooldown so the pool stops
+      // picking it, then rotate to a funded key.
+      if (isInsufficientCreditsError(err) && rotation < MAX_KEY_ROTATIONS - 1) {
+        markFluxKeyCooldown(key, CREDIT_COOLDOWN_MS)
+        if (process.env.NODE_ENV !== 'production') {
+          console.warn(`💳 FLUX key …${key.slice(-4)} has NO credits — cooling down ${Math.round(CREDIT_COOLDOWN_MS / 60000)}min, rotating to a funded key`)
+        }
+        release()
+        continue
+      }
       // On rate-limit, mark this specific key cooling-down and try another
       if (isRateLimitError(err) && rotation < MAX_KEY_ROTATIONS - 1) {
         markFluxKeyCooldown(key)
