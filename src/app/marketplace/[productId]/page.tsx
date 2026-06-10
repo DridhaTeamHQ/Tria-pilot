@@ -119,7 +119,7 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
                 </div>
                 
                 {product.price && (
-                  <div className="shrink-0 self-start sm:self-auto">
+                  <div className="shrink-0 self-auto hidden sm:block">
                     <span className="inline-flex items-center px-4 py-2 bg-black text-white rounded-xl text-xl font-black shadow-[3px_3px_0px_0px_#FFD93D] transform -rotate-1">
                       ₹{Number(product.price).toLocaleString()}
                     </span>
@@ -131,6 +131,15 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
               <h1 className="mt-6 text-2xl font-black leading-tight text-black sm:text-4xl">
                 {product.name}
               </h1>
+
+              {/* Mobile Price */}
+              {product.price && (
+                <div className="mt-4 shrink-0 sm:hidden">
+                  <span className="inline-flex items-center px-4 py-2 bg-black text-white rounded-xl text-xl font-black shadow-[3px_3px_0px_0px_#FFD93D] transform -rotate-1">
+                    ₹{Number(product.price).toLocaleString()}
+                  </span>
+                </div>
+              )}
 
               {/* CTA Buttons */}
               <div className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -166,8 +175,8 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
                       rel="noopener noreferrer"
                       className="flex min-h-[42px] w-full items-center justify-center gap-2 border-[3px] border-black bg-white px-3 py-2 text-xs font-bold uppercase tracking-wider text-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none transition-all rounded-lg"
                     >
-                      <ExternalLink className="w-4 h-4 shrink-0" />
-                      <span className="truncate">Original</span>
+                      <ExternalLink className="w-5 h-5 sm:w-4 sm:h-4 shrink-0" />
+                      <span className="truncate hidden sm:inline">Original</span>
                     </a>
                   </div>
                 )}

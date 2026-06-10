@@ -163,7 +163,7 @@ function ToastCard({ toastItem }: { toastItem: ToastItem }) {
         <button
           type="button"
           onClick={() => dismiss(toastItem.id)}
-          className="flex h-7 w-7 shrink-0 items-center justify-center rounded-xl border-[2px] border-black bg-white text-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
+          className="flex !h-8 !w-8 !min-h-[32px] !min-w-[32px] !p-0 !m-0 appearance-none shrink-0 items-center justify-center rounded-full sm:rounded-xl border-[2px] border-black bg-white text-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
           aria-label="Dismiss notification"
         >
           <X className="h-3.5 w-3.5" strokeWidth={3} />

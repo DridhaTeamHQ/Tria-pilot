@@ -47,24 +47,16 @@ export default function ImageCarousel({ images }: ImageCarouselProps) {
           <>
             <button
               type="button"
-              className="absolute left-2 top-1/2 z-30 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border-2 border-black bg-white/95 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] backdrop-blur transition-all active:translate-x-[1px] active:translate-y-[1px] active:shadow-none sm:left-4 sm:h-12 sm:w-12 sm:border-[3px] sm:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] sm:hover:bg-black sm:hover:text-white"
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                prevImage();
-              }}
+              className="absolute left-2 top-1/2 z-30 flex h-10 w-10 sm:h-12 sm:w-12 -translate-y-1/2 items-center justify-center rounded-full border-2 border-black bg-white/95 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] backdrop-blur transition-all active:translate-x-[1px] active:translate-y-[1px] active:shadow-none sm:left-4 sm:border-[3px] sm:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] sm:hover:bg-black sm:hover:text-white"
+              onClick={prevImage}
               aria-label="Previous image"
             >
               <ChevronLeft className="h-5 w-5 stroke-[3] sm:h-6 sm:w-6" />
             </button>
             <button
               type="button"
-              className="absolute right-2 top-1/2 z-30 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border-2 border-black bg-white/95 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] backdrop-blur transition-all active:translate-x-[1px] active:translate-y-[1px] active:shadow-none sm:right-4 sm:h-12 sm:w-12 sm:border-[3px] sm:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] sm:hover:bg-black sm:hover:text-white"
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                nextImage();
-              }}
+              className="absolute right-2 top-1/2 z-30 flex h-10 w-10 sm:h-12 sm:w-12 -translate-y-1/2 items-center justify-center rounded-full border-2 border-black bg-white/95 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] backdrop-blur transition-all active:translate-x-[1px] active:translate-y-[1px] active:shadow-none sm:right-4 sm:border-[3px] sm:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] sm:hover:bg-black sm:hover:text-white"
+              onClick={nextImage}
               aria-label="Next image"
             >
               <ChevronRight className="h-5 w-5 stroke-[3] sm:h-6 sm:w-6" />
