@@ -219,7 +219,7 @@ function InboxInner() {
   return (
     <div className="pt-20 sm:pt-[88px] lg:pt-24 min-h-screen bg-[#F9F8F4] flex flex-col items-center px-4 sm:px-6 lg:px-8 pb-8">
       {/* Premium Inbox Container */}
-      <div className="w-full max-w-[1440px] h-[calc(100vh-100px)] sm:h-[calc(100vh-120px)] lg:h-[calc(100vh-140px)] bg-white border-[3px] border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] rounded-[32px] overflow-hidden flex flex-col md:flex-row relative">
+      <div className="w-[calc(100%-16px)] md:w-full max-w-[1440px] h-[calc(100vh-100px)] sm:h-[calc(100vh-120px)] lg:h-[calc(100vh-140px)] bg-white border-[3px] border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] rounded-[32px] overflow-hidden flex flex-col md:flex-row relative">
         
         {/* Left Sidebar - Conversation List */}
         <div className={cn(

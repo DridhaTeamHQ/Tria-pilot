@@ -294,7 +294,7 @@ function BrandInboxInner() {
   return (
     <div className="w-full flex flex-col items-center px-4 py-4 animate-fade-in" style={{ height: 'calc(100vh - 56px - 80px)' }}>
       {/* Premium Inbox Container */}
-      <div className="w-full max-w-[1440px] flex-1 min-h-0 bg-white border-[3px] border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] rounded-[32px] overflow-hidden flex flex-col md:flex-row relative">
+      <div className="w-[calc(100%-16px)] md:w-full max-w-[1440px] flex-1 min-h-0 bg-white border-[3px] border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] rounded-[32px] overflow-hidden flex flex-col md:flex-row relative">
 
         {/* Left Sidebar - Conversation List */}
         <div className={cn(
