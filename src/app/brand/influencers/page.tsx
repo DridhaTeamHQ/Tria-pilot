@@ -32,6 +32,7 @@ import {
   List,
 } from 'lucide-react'
 import { FilterDropdown } from '@/components/brand/FilterDropdown'
+import { PortalModal } from '@/components/ui/PortalModal'
 
 interface Influencer {
   id: string
@@ -140,6 +141,7 @@ export default function BrandInfluencersPage() {
   const [showShortlistOnly, setShowShortlistOnly] = useState(false)
   const [hydrated, setHydrated] = useState(false)
   const [viewMode, setViewMode] = useState<'grid' | 'table'>('table')
+  const [isMobileFiltersOpen, setIsMobileFiltersOpen] = useState(false)
 
   // Hydrate shortlist
   useEffect(() => {
@@ -398,17 +400,27 @@ export default function BrandInfluencersPage() {
                     </button>
                   )}
                 </div>
-                <button
-                  type="submit"
-                  className="w-full sm:w-auto px-8 py-4 bg-black text-white rounded-2xl font-semibold text-xs uppercase tracking-widest hover:bg-gray-900 active:translate-y-0.5 transition-all shadow-md shadow-black/20 hover:shadow-lg"
-                >
-                  Find Creators
-                </button>
+                <div className="flex gap-3 w-full sm:w-auto">
+                  <button
+                    type="button"
+                    onClick={() => setIsMobileFiltersOpen(true)}
+                    className="md:hidden flex-1 px-4 py-4 bg-white border-2 border-black rounded-2xl font-black text-xs uppercase tracking-widest shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[2px] hover:translate-y-[2px] transition-all flex items-center justify-center gap-2"
+                  >
+                    <SlidersHorizontal className="w-4 h-4" strokeWidth={3} />
+                    Filters {activeFilterCount > 0 && `(${activeFilterCount})`}
+                  </button>
+                  <button
+                    type="submit"
+                    className="flex-1 sm:flex-none w-full sm:w-auto px-8 py-4 bg-black text-white rounded-2xl font-semibold text-xs uppercase tracking-widest hover:bg-gray-900 active:translate-y-0.5 transition-all shadow-md shadow-black/20 hover:shadow-lg"
+                  >
+                    Find Creators
+                  </button>
+                </div>
               </form>
             </div>
 
             {/* Filters Row */}
-            <div className="p-4 sm:p-6 flex flex-wrap items-center gap-3">
+            <div className="hidden md:flex p-4 sm:p-6 flex-wrap items-center gap-3">
               <FilterDropdown
                 label="Niche"
                 anyLabel="All niches"
@@ -741,6 +753,49 @@ export default function BrandInfluencersPage() {
             </div>
           </div>
         )}
+
+        {/* Mobile Filters Modal */}
+        <PortalModal isOpen={isMobileFiltersOpen} onClose={() => setIsMobileFiltersOpen(false)}>
+          <div className="fixed inset-0 z-[100] flex flex-col justify-end pointer-events-none">
+            {/* Backdrop */}
+            <div 
+              className="absolute inset-0 bg-black/40 backdrop-blur-sm pointer-events-auto transition-opacity"
+              onClick={() => setIsMobileFiltersOpen(false)}
+            />
+            
+            {/* Bottom Sheet */}
+            <div className="relative w-full max-h-[85vh] bg-white rounded-t-[32px] border-t-[3px] border-x-[3px] border-black shadow-[0_-8px_0_0_rgba(0,0,0,1)] p-6 pointer-events-auto flex flex-col animate-slide-up">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-xl font-black text-black">Filters</h2>
+                <button 
+                  onClick={() => setIsMobileFiltersOpen(false)}
+                  className="p-2 bg-gray-100 rounded-xl hover:bg-gray-200 transition-colors border-2 border-transparent hover:border-black"
+                >
+                  <X className="w-5 h-5 text-black" />
+                </button>
+              </div>
+              
+              <div className="flex-1 overflow-y-auto pb-6">
+                <div className="grid grid-cols-2 gap-3">
+                  <FilterDropdown label="Niche" anyLabel="All niches" value={niche} onChange={(v) => setNiche(Array.isArray(v) ? (v[0] ?? null) : v)} options={NICHE_OPTIONS} accentColor="#B4F056" />
+                  <FilterDropdown label="Size" anyLabel="Any size" value={followerBand} onChange={(v) => setFollowerBand(Array.isArray(v) ? (v[0] ?? null) : v)} options={FOLLOWER_BANDS as unknown as { value: string; label: string; hint?: string }[]} accentColor="#A78BFA" />
+                  <FilterDropdown label="Budget" anyLabel="Any" value={priceBand} onChange={(v) => setPriceBand(Array.isArray(v) ? (v[0] ?? null) : v)} options={PRICE_BANDS as unknown as { value: string; label: string }[]} accentColor="#FFD93D" />
+                  <FilterDropdown label="Reach" anyLabel="Any" value={minEngagement} onChange={(v) => { const raw = Array.isArray(v) ? v[0] : v; setMinEngagement(raw != null ? Number(raw) : null) }} options={ENGAGEMENT_OPTIONS} accentColor="#FF8C69" />
+                  <FilterDropdown label="Badge" anyLabel="Any" value={badgeTier} onChange={(v) => setBadgeTier(Array.isArray(v) ? (v[0] ?? null) : v)} options={BADGE_TIERS} accentColor="#FBBF24" />
+                  <FilterDropdown label="Sort" anyLabel="Followers" value={sortBy} onChange={(v) => setSortBy(Array.isArray(v) ? v[0] || 'followers' : v || 'followers')} options={SORT_OPTIONS as unknown as { value: string; label: string }[]} className="w-full" />
+                </div>
+                
+                <button
+                  type="button"
+                  onClick={() => setIsMobileFiltersOpen(false)}
+                  className="w-full mt-6 px-8 py-4 bg-black text-white rounded-2xl font-semibold text-xs uppercase tracking-widest hover:bg-gray-900 active:translate-y-0.5 transition-all shadow-md shadow-black/20 hover:shadow-lg"
+                >
+                  Apply Filters
+                </button>
+              </div>
+            </div>
+          </div>
+        </PortalModal>
 
         <style jsx global>{`
         @keyframes pageFadeIn {
