@@ -12,6 +12,7 @@ interface Props<V> {
   accentColor?: string
   className?: string
   isMulti?: boolean
+  dropdownClassName?: string
 }
 
 export function FilterDropdown<V extends string | number>(props: Props<V>) {
@@ -24,6 +25,7 @@ export function FilterDropdown<V extends string | number>(props: Props<V>) {
     accentColor,
     className,
     isMulti = false,
+    dropdownClassName = 'left-0',
   } = props
 
   const [open, setOpen] = useState(false)
@@ -110,9 +112,10 @@ export function FilterDropdown<V extends string | number>(props: Props<V>) {
 
         {open && (
           <div
-            className="absolute top-full left-0 mt-2 filter-pop bg-white/95 backdrop-blur-xl border border-gray-100 shadow-2xl shadow-black/10 rounded-2xl overflow-hidden z-[9999]"
+            className={`absolute top-full mt-2 filter-pop bg-white/95 backdrop-blur-xl border border-gray-100 shadow-2xl shadow-black/10 rounded-2xl overflow-hidden z-[9999] ${dropdownClassName}`}
             style={{
               minWidth: 220,
+              maxWidth: '90vw',
             }}
           >
             <div className="px-4 py-3 border-b border-gray-100 bg-gray-50 flex items-center justify-between">
@@ -127,7 +130,7 @@ export function FilterDropdown<V extends string | number>(props: Props<V>) {
                 </button>
               )}
             </div>
-            <ul className="max-h-72 overflow-y-auto py-2 scrollbar-thin">
+            <ul className="max-h-72 overflow-y-auto py-2 scrollbar-thin overscroll-contain">
               {options.map((opt) => {
                 const active = isMulti
                   ? Array.isArray(selected) && (selected as V[]).includes(opt.value)

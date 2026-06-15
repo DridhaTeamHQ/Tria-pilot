@@ -379,7 +379,7 @@ export default function BrandInfluencersPage() {
         <div className="mb-10">
           <div className="bg-white border-[3px] border-black rounded-[32px] shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
             {/* Search bar integration */}
-            <div className="p-4 sm:p-6 border-b-2 border-black bg-[#F9F8F4]/50 rounded-t-[29px]">
+            <div className="p-4 sm:p-6 border-b-0 md:border-b-2 border-black bg-[#F9F8F4]/50 rounded-[29px] md:rounded-b-none">
               <form onSubmit={handleSubmitSearch} className="flex flex-col sm:flex-row items-center gap-4">
                 <div className="flex-1 w-full relative group">
                   <Search className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-black/40 group-focus-within:text-black transition-colors" />
@@ -478,7 +478,7 @@ export default function BrandInfluencersPage() {
 
             {/* Active chips bar */}
             {activeChips.length > 0 && (
-              <div className="flex flex-wrap items-center gap-2 mt-2 pt-4 border-t border-gray-100">
+              <div className="flex flex-wrap items-center gap-2 mt-2 pt-4 px-4 sm:px-6 pb-4 sm:pb-6 border-t border-gray-100">
                 <span className="text-[9px] font-black uppercase tracking-widest text-black/60 ml-1">
                   Active Filters
                 </span>
@@ -775,14 +775,14 @@ export default function BrandInfluencersPage() {
                 </button>
               </div>
               
-              <div className="flex-1 overflow-y-auto pb-6">
+              <div className="flex-1 overflow-y-auto pb-6 overscroll-contain">
                 <div className="grid grid-cols-2 gap-3">
                   <FilterDropdown label="Niche" anyLabel="All niches" value={niche} onChange={(v) => setNiche(Array.isArray(v) ? (v[0] ?? null) : v)} options={NICHE_OPTIONS} accentColor="#B4F056" />
-                  <FilterDropdown label="Size" anyLabel="Any size" value={followerBand} onChange={(v) => setFollowerBand(Array.isArray(v) ? (v[0] ?? null) : v)} options={FOLLOWER_BANDS as unknown as { value: string; label: string; hint?: string }[]} accentColor="#A78BFA" />
+                  <FilterDropdown label="Size" anyLabel="Any size" value={followerBand} onChange={(v) => setFollowerBand(Array.isArray(v) ? (v[0] ?? null) : v)} options={FOLLOWER_BANDS as unknown as { value: string; label: string; hint?: string }[]} accentColor="#A78BFA" dropdownClassName="right-0 md:left-0 md:right-auto" />
                   <FilterDropdown label="Budget" anyLabel="Any" value={priceBand} onChange={(v) => setPriceBand(Array.isArray(v) ? (v[0] ?? null) : v)} options={PRICE_BANDS as unknown as { value: string; label: string }[]} accentColor="#FFD93D" />
-                  <FilterDropdown label="Reach" anyLabel="Any" value={minEngagement} onChange={(v) => { const raw = Array.isArray(v) ? v[0] : v; setMinEngagement(raw != null ? Number(raw) : null) }} options={ENGAGEMENT_OPTIONS} accentColor="#FF8C69" />
+                  <FilterDropdown label="Reach" anyLabel="Any" value={minEngagement} onChange={(v) => { const raw = Array.isArray(v) ? v[0] : v; setMinEngagement(raw != null ? Number(raw) : null) }} options={ENGAGEMENT_OPTIONS} accentColor="#FF8C69" dropdownClassName="right-0 md:left-0 md:right-auto" />
                   <FilterDropdown label="Badge" anyLabel="Any" value={badgeTier} onChange={(v) => setBadgeTier(Array.isArray(v) ? (v[0] ?? null) : v)} options={BADGE_TIERS} accentColor="#FBBF24" />
-                  <FilterDropdown label="Sort" anyLabel="Followers" value={sortBy} onChange={(v) => setSortBy(Array.isArray(v) ? v[0] || 'followers' : v || 'followers')} options={SORT_OPTIONS as unknown as { value: string; label: string }[]} className="w-full" />
+                  <FilterDropdown label="Sort" anyLabel="Followers" value={sortBy} onChange={(v) => setSortBy(Array.isArray(v) ? v[0] || 'followers' : v || 'followers')} options={SORT_OPTIONS as unknown as { value: string; label: string }[]} className="w-full" dropdownClassName="right-0 md:left-0 md:right-auto" />
                 </div>
                 
                 <button
