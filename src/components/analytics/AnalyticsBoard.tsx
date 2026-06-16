@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState, useEffect } from 'react'
+import { useMemo, useState, useEffect, useRef } from 'react'
 import { motion } from 'framer-motion'
 import { useQuery, keepPreviousData, useQueryClient } from '@tanstack/react-query'
 import {
@@ -129,7 +129,7 @@ function StatCard({
   )
 }
 
-function MainTrendChart({ data: inputData, height = '300px', days = 7, activeSeries = { clicks: true, revenue: true, orders: true } }: { data: AnalyticsData['series']; height?: number | string; days?: number; activeSeries?: { clicks: boolean; revenue: boolean; orders: boolean } }) {
+function MainTrendChart({ data: inputData, height = '300px', days = 15, activeSeries = { clicks: true, revenue: true, orders: true } }: { data: AnalyticsData['series']; height?: number | string; days?: number; activeSeries?: { clicks: boolean; revenue: boolean; orders: boolean } }) {
   const data = useMemo(() => {
     const safeDays = days || 7;
     const endDate = new Date(); // End date is always today for these preset timeframes
@@ -151,12 +151,20 @@ function MainTrendChart({ data: inputData, height = '300px', days = 7, activeSer
     });
   }, [inputData, days]);
 
-  const labelStep = useMemo(() => {
-    if (days <= 7) return 1
+  const desktopLabelStep = useMemo(() => {
+    if (days <= 15) return 2
     if (days <= 31) return 5
-    if (days <= 90) return 10
-    if (days <= 365) return 30
-    return 30
+    if (days <= 45) return 7
+    if (days <= 365) return 60
+    return 60
+  }, [days])
+
+  const mobileLabelStep = useMemo(() => {
+    if (days <= 15) return 4
+    if (days <= 31) return 10
+    if (days <= 45) return 15
+    if (days <= 365) return 120
+    return 120
   }, [days])
 
   const maxClicks = Math.max(...data.map((d) => d.clicks), 50)
@@ -165,19 +173,39 @@ function MainTrendChart({ data: inputData, height = '300px', days = 7, activeSer
 
   const pointDenominator = Math.max(data.length - 1, 1)
 
+  const chartRef = useRef<HTMLDivElement>(null)
+  const [chartSize, setChartSize] = useState({ w: 0, h: 0 })
+
+  useEffect(() => {
+    const el = chartRef.current
+    if (!el) return
+    const update = () => {
+      const { width, height } = el.getBoundingClientRect()
+      setChartSize({ w: Math.round(width), h: Math.round(height) })
+    }
+    update()
+    const ro = new ResizeObserver(update)
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [])
+
+  const PY = 10
+  const toY = (yPct: number) => PY + (yPct - 10) / 80 * (chartSize.h - 2 * PY)
+  const toX = (xPct: number) => xPct / 100 * chartSize.w
+
   const clickPoints = data.map((d, i) => ({
-    x: (i / pointDenominator) * 100,
-    y: 100 - (d.clicks / maxClicks) * 80 - 10,
+    x: toX((i / pointDenominator) * 100),
+    y: toY(100 - (d.clicks / maxClicks) * 80 - 10),
   }))
 
   const revenuePoints = data.map((d, i) => ({
-    x: (i / pointDenominator) * 100,
-    y: 100 - (d.revenue / maxRevenue) * 80 - 10,
+    x: toX((i / pointDenominator) * 100),
+    y: toY(100 - (d.revenue / maxRevenue) * 80 - 10),
   }))
 
   const orderPoints = data.map((d, i) => ({
-    x: (i / pointDenominator) * 100,
-    y: 100 - (d.orders / maxOrders) * 80 - 10,
+    x: toX((i / pointDenominator) * 100),
+    y: toY(100 - (d.orders / maxOrders) * 80 - 10),
   }))
 
   const getLinearPath = (points: { x: number; y: number }[]) => {
@@ -212,9 +240,9 @@ function MainTrendChart({ data: inputData, height = '300px', days = 7, activeSer
         ))}
       </div>
 
-      <div className="absolute inset-x-12 top-4 bottom-5">
-        <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="h-full w-full overflow-visible">
-          {activeSeries.clicks && (
+      <div ref={chartRef} className="absolute inset-x-12 top-4 bottom-5">
+        <svg width={chartSize.w} height={chartSize.h} style={{ overflow: 'visible' }}>
+          {chartSize.h > 0 && activeSeries.clicks && (
             <path
               d={clickPath}
               fill="none"
@@ -222,10 +250,9 @@ function MainTrendChart({ data: inputData, height = '300px', days = 7, activeSer
               strokeWidth="2.5"
               strokeLinecap="round"
               strokeLinejoin="round"
-              vectorEffect="non-scaling-stroke"
             />
           )}
-          {activeSeries.revenue && (
+          {chartSize.h > 0 && activeSeries.revenue && (
             <path
               d={revenuePath}
               fill="none"
@@ -233,10 +260,9 @@ function MainTrendChart({ data: inputData, height = '300px', days = 7, activeSer
               strokeWidth="2.5"
               strokeLinecap="round"
               strokeLinejoin="round"
-              vectorEffect="non-scaling-stroke"
             />
           )}
-          {activeSeries.orders && (
+          {chartSize.h > 0 && activeSeries.orders && (
             <path
               d={orderPath}
               fill="none"
@@ -244,7 +270,6 @@ function MainTrendChart({ data: inputData, height = '300px', days = 7, activeSer
               strokeWidth="2.5"
               strokeLinecap="round"
               strokeLinejoin="round"
-              vectorEffect="non-scaling-stroke"
             />
           )}
         </svg>
@@ -253,17 +278,23 @@ function MainTrendChart({ data: inputData, height = '300px', days = 7, activeSer
       <div className="absolute bottom-2 inset-x-12 h-4 pointer-events-none">
         {data.map((d, i) => {
           const isLast = i === data.length - 1
-          const showLabel = i % labelStep === 0 || isLast
-          if (!showLabel) return null
+          const showDesktop = i % desktopLabelStep === 0 || isLast
+          const showMobile = i % mobileLabelStep === 0 || isLast
+
+          if (!showDesktop && !showMobile) return null
 
           let transform = "translateX(-50%)"
           if (i === 0) transform = "translateX(0)"
           else if (isLast) transform = "translateX(-100%)"
 
+          let visibilityClass = ""
+          if (showDesktop && !showMobile) visibilityClass = "hidden sm:block"
+          else if (!showDesktop && showMobile) visibilityClass = "sm:hidden"
+
           return (
             <div
               key={i}
-              className="absolute text-[10px] font-bold text-black/30 whitespace-nowrap"
+              className={`absolute text-[10px] font-bold text-black/30 whitespace-nowrap ${visibilityClass}`}
               style={{
                 left: `${(i / Math.max(data.length - 1, 1)) * 100}%`,
                 transform
@@ -349,14 +380,14 @@ function Sparkline({ data, color = "#10B981" }: { data: number[], color?: string
   const points = data.length > 1
     ? data.map((v, i) => ({
       x: (i / (data.length - 1)) * 100,
-      y: 100 - ((v - min) / range) * 80 - 10,
+      y: 90 - ((v - min) / range) * 80, // Map min value to y=90 to prevent bottom clipping
     }))
     : [{ x: 0, y: 50 }, { x: 100, y: 50 }];
 
   const path = `M ${points[0].x} ${points[0].y} ` + points.slice(1).map(p => `L ${p.x} ${p.y}`).join(' ');
 
   return (
-    <div className="relative h-12 w-24">
+    <div className="absolute bottom-2 right-2 sm:bottom-3 sm:right-4 h-14 w-24 sm:h-16 sm:w-28 opacity-80 sm:opacity-100">
       <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="h-full w-full">
         <defs>
           <linearGradient id={`sparkGradient-${color}`} x1="0" y1="0" x2="0" y2="1">
@@ -375,6 +406,7 @@ function Sparkline({ data, color = "#10B981" }: { data: number[], color?: string
           strokeWidth="3"
           strokeLinecap="round"
           strokeLinejoin="round"
+          vectorEffect="non-scaling-stroke"
         />
         <circle cx={points[points.length - 1].x} cy={points[points.length - 1].y} r="4" fill={color} stroke="white" strokeWidth="2" />
       </svg>
@@ -384,8 +416,8 @@ function Sparkline({ data, color = "#10B981" }: { data: number[], color?: string
 
 function QuickInsightRow({ label, value, subValue, data, color, days }: { label: string, value: string, subValue: string, data: number[], color: string, days: number }) {
   return (
-    <div className="flex items-center justify-between rounded-xl border-2 border-black p-4 transition-all hover:translate-x-[-2px] hover:translate-y-[-2px] hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]" style={{ backgroundColor: `${color}10` }}>
-      <div className="flex flex-col">
+    <div className="flex items-center justify-between relative overflow-hidden rounded-xl border-2 border-black p-4 transition-all hover:translate-x-[-2px] hover:translate-y-[-2px] hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]" style={{ backgroundColor: `${color}10` }}>
+      <div className="flex flex-col relative z-10">
         <span className="text-xl font-black text-black">{value}</span>
         <span className="text-[10px] font-black uppercase tracking-wider text-black/60">{label}</span>
         <div className="mt-1 flex items-center gap-1 text-[10px] font-bold text-black/40">
@@ -408,7 +440,7 @@ export default function AnalyticsBoard({ expectedRole }: { expectedRole: Role })
   const queryClient = useQueryClient()
 
   useEffect(() => {
-    [7, 30, 90, 365].forEach(d => {
+    [15, 30, 45, 365].forEach(d => {
       if (d !== days) {
         queryClient.prefetchQuery({
           queryKey: ['analytics-overview', expectedRole, d],
@@ -480,7 +512,7 @@ export default function AnalyticsBoard({ expectedRole }: { expectedRole: Role })
           </div>
           <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border-[3px] border-black bg-white p-1.5 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] sm:gap-2 sm:p-2">
             <div className="flex flex-1 items-center justify-between sm:justify-start gap-1">
-              {[7, 30, 90, 365].map((d) => (
+              {[15, 30, 45, 365].map((d) => (
                 <button
                   key={d}
                   type="button"
@@ -529,7 +561,7 @@ export default function AnalyticsBoard({ expectedRole }: { expectedRole: Role })
                     </button>
                     {isChartDaysDropdownOpen && (
                       <div className="absolute right-0 top-full mt-2 z-10 w-28 rounded-lg border-2 border-black bg-white p-1 shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]">
-                        {[7, 30, 90, 365].map((d) => (
+                        {[15, 30, 45, 365].map((d) => (
                           <button
                             key={d}
                             onClick={() => {
@@ -579,7 +611,7 @@ export default function AnalyticsBoard({ expectedRole }: { expectedRole: Role })
                     </button>
                     {isChartDaysDropdownOpen && (
                       <div className="absolute right-0 top-full mt-2 z-10 w-32 rounded-xl border-2 border-black bg-white p-1 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
-                        {[7, 30, 90, 365].map((d) => (
+                        {[15, 30, 45, 365].map((d) => (
                           <button
                             key={d}
                             onClick={() => {

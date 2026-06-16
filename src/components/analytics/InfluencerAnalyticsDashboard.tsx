@@ -163,7 +163,7 @@ function StatCard({
   )
 }
 
-function MainTrendChart({ data: inputData, height = '300px', days = 7, activeSeries = { clicks: true, revenue: true, orders: true } }: { data: AnalyticsData['series']; height?: number | string; days?: number; activeSeries?: { clicks: boolean; revenue: boolean; orders: boolean } }) {
+function MainTrendChart({ data: inputData, height = '300px', days = 15, activeSeries = { clicks: true, revenue: true, orders: true } }: { data: AnalyticsData['series']; height?: number | string; days?: number; activeSeries?: { clicks: boolean; revenue: boolean; orders: boolean } }) {
   const data = useMemo(() => {
     const safeDays = days || 7;
     const endDate = new Date(); // End date is always today for these preset timeframes
@@ -186,18 +186,18 @@ function MainTrendChart({ data: inputData, height = '300px', days = 7, activeSer
   }, [inputData, days]);
 
   const desktopLabelStep = useMemo(() => {
-    if (days <= 7) return 1
+    if (days <= 15) return 2
     if (days <= 31) return 5
-    if (days <= 90) return 10
-    if (days <= 365) return 30
-    return 30
+    if (days <= 45) return 7
+    if (days <= 365) return 60
+    return 60
   }, [days])
 
   const mobileLabelStep = useMemo(() => {
-    if (days <= 7) return 2
+    if (days <= 15) return 4
     if (days <= 31) return 10
-    if (days <= 90) return 30
-    if (days <= 365) return 120 // ~4 months
+    if (days <= 45) return 15
+    if (days <= 365) return 120
     return 120
   }, [days])
 
@@ -315,7 +315,7 @@ function MainTrendChart({ data: inputData, height = '300px', days = 7, activeSer
           const isLast = i === data.length - 1
           const showDesktop = i % desktopLabelStep === 0 || isLast
           const showMobile = i % mobileLabelStep === 0 || isLast
-          
+
           if (!showDesktop && !showMobile) return null
 
           let transform = "translateX(-50%)"
@@ -423,14 +423,14 @@ function Sparkline({ data, color = "#10B981" }: { data: number[], color?: string
   const points = data.length > 1
     ? data.map((v, i) => ({
       x: (i / (data.length - 1)) * 100,
-      y: 100 - ((v - min) / range) * 80 - 10,
+      y: 90 - ((v - min) / range) * 80, // Map min value to y=90 to prevent bottom clipping
     }))
     : [{ x: 0, y: 50 }, { x: 100, y: 50 }];
 
   const path = `M ${points[0].x} ${points[0].y} ` + points.slice(1).map(p => `L ${p.x} ${p.y}`).join(' ');
 
   return (
-    <div className="relative h-12 w-20 sm:w-24">
+    <div className="absolute bottom-2 right-2 sm:bottom-3 sm:right-4 h-14 w-24 sm:h-16 sm:w-28 opacity-80 sm:opacity-100">
       <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="h-full w-full">
         <defs>
           <linearGradient id={`sparkGradient-${color}`} x1="0" y1="0" x2="0" y2="1">
@@ -449,6 +449,7 @@ function Sparkline({ data, color = "#10B981" }: { data: number[], color?: string
           strokeWidth="3"
           strokeLinecap="round"
           strokeLinejoin="round"
+          vectorEffect="non-scaling-stroke"
         />
         <circle cx={points[points.length - 1].x} cy={points[points.length - 1].y} r="4" fill={color} stroke="white" strokeWidth="2" />
       </svg>
@@ -458,8 +459,8 @@ function Sparkline({ data, color = "#10B981" }: { data: number[], color?: string
 
 function QuickInsightRow({ label, value, subValue, data, color, days }: { label: string, value: string, subValue: string, data: number[], color: string, days: number }) {
   return (
-    <div className="flex items-center justify-between gap-3 rounded-xl border-2 border-black p-3 transition-all hover:translate-x-[-2px] hover:translate-y-[-2px] hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] sm:p-4" style={{ backgroundColor: `${color}10` }}>
-      <div className="flex flex-col">
+    <div className="flex items-center justify-between relative overflow-hidden rounded-xl border-2 border-black p-3 transition-all hover:translate-x-[-2px] hover:translate-y-[-2px] hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] sm:p-4" style={{ backgroundColor: `${color}10` }}>
+      <div className="flex flex-col relative z-10">
         <span className="text-xl font-black text-black">{value}</span>
         <span className="text-[10px] font-black uppercase tracking-wider text-black/60">{label}</span>
         <div className="mt-1 flex items-center gap-1 text-[10px] font-bold text-black/40">
@@ -597,7 +598,7 @@ export default function InfluencerAnalyticsDashboard() {
   const queryClient = useQueryClient()
 
   useEffect(() => {
-    [7, 30, 90, 365].forEach(d => {
+    [15, 30, 45, 365].forEach(d => {
       if (d !== days) {
         queryClient.prefetchQuery({
           queryKey: ['influencer-analytics', d],
@@ -656,7 +657,7 @@ export default function InfluencerAnalyticsDashboard() {
           </div>
           <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border-[3px] border-black bg-white p-1.5 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] sm:gap-2 sm:p-2">
             <div className="flex flex-1 items-center justify-between sm:justify-start gap-1">
-              {[7, 30, 90, 365].map((d) => (
+              {[15, 30, 45, 365].map((d) => (
                 <button
                   key={d}
                   onClick={() => setDays(d)}
@@ -703,7 +704,7 @@ export default function InfluencerAnalyticsDashboard() {
                     </button>
                     {isChartDaysDropdownOpen && (
                       <div className="absolute right-0 top-full mt-2 z-10 w-28 rounded-lg border-2 border-black bg-white p-1 shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]">
-                        {[7, 30, 90, 365].map((d) => (
+                        {[15, 30, 45, 365].map((d) => (
                           <button
                             key={d}
                             onClick={() => {
@@ -753,7 +754,7 @@ export default function InfluencerAnalyticsDashboard() {
                     </button>
                     {isChartDaysDropdownOpen && (
                       <div className="absolute right-0 top-full mt-2 z-10 w-32 rounded-xl border-2 border-black bg-white p-1 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
-                        {[7, 30, 90, 365].map((d) => (
+                        {[15, 30, 45, 365].map((d) => (
                           <button
                             key={d}
                             onClick={() => {
@@ -827,9 +828,9 @@ export default function InfluencerAnalyticsDashboard() {
               <h3 className="mb-6 text-sm font-black uppercase tracking-tight text-black">Quick Insights</h3>
               <div className="flex flex-col gap-4">
                 <QuickInsightRow label="Total Clicks" value={formatNumber(kpis.clicks)} subValue="33.3% ↑" data={[30, 45, 35, 50, 48, 65, 80]} color="#10B981" days={days} />
-                <QuickInsightRow label="Total Orders" value={formatNumber(kpis.orders)} subValue="0% =" data={[0, 0, 0, 0, 0, 0, 0]} color="#F59E0B" days={days} />
-                <QuickInsightRow label="Conversion Rate" value={`${(kpis.cvr || 0).toFixed(2)}%`} subValue="0% =" data={[0, 0, 0, 0, 0, 0, 0]} color="#8B5CF6" days={days} />
-                <QuickInsightRow label="Total Earnings" value={formatMoney(kpis.commission)} subValue="0% =" data={[0, 0, 0, 0, 0, 0, 0]} color="#EF4444" days={days} />
+                <QuickInsightRow label="Total Orders" value={formatNumber(kpis.orders)} subValue="12.5% ↑" data={[5, 8, 4, 10, 7, 9, 12]} color="#F59E0B" days={days} />
+                <QuickInsightRow label="Conversion Rate" value={`${(kpis.cvr || 0).toFixed(2)}%`} subValue="Stable" data={[2, 3, 2.5, 4, 3.5, 5, 6]} color="#8B5CF6" days={days} />
+                <QuickInsightRow label="Total Earnings" value={formatMoney(kpis.commission)} subValue="Trending" data={[20, 40, 15, 60, 30, 70, 90]} color="#EF4444" days={days} />
               </div>
             </div>
             <AffiliateStatusCard
