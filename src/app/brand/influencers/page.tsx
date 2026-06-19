@@ -710,21 +710,21 @@ export default function BrandInfluencersPage() {
                           <button
                             type="button"
                             onClick={() => handleViewProfile(influencer.id)}
-                            className="px-4 py-2.5 bg-white text-black border-2 border-black rounded-xl font-black text-[10px] uppercase tracking-widest shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[1.5px] hover:translate-y-[1.5px] transition-all"
+                            className="shrink-0 px-4 py-2.5 bg-white text-black border-2 border-black rounded-xl font-black text-[10px] uppercase tracking-widest shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[1.5px] hover:translate-y-[1.5px] transition-all"
                           >
                             Profile
                           </button>
                           <button
                             type="button"
                             onClick={() => handleMessage(influencer.id)}
-                            className="px-4 py-2.5 bg-[#B4F056] text-black border-2 border-black rounded-xl font-black text-[10px] uppercase tracking-widest shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[1.5px] hover:translate-y-[1.5px] transition-all"
+                            className="shrink-0 px-4 py-2.5 bg-[#B4F056] text-black border-2 border-black rounded-xl font-black text-[10px] uppercase tracking-widest shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[1.5px] hover:translate-y-[1.5px] transition-all"
                           >
                             Message
                           </button>
                           <button
                             type="button"
                             onClick={() => toggleShortlist(influencer.id)}
-                            className={`p-2.5 rounded-xl border-2 border-black transition-all ${isShortlisted ? 'bg-[#FFD93D] shadow-none translate-x-[1.5px] translate-y-[1.5px]' : 'bg-white shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[1.5px] hover:translate-y-[1.5px]'}`}
+                            className={`shrink-0 p-2.5 rounded-xl border-2 border-black transition-all ${isShortlisted ? 'bg-[#FFD93D] shadow-none translate-x-[1.5px] translate-y-[1.5px]' : 'bg-white shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[1.5px] hover:translate-y-[1.5px]'}`}
                           >
                             <Bookmark className={`w-4 h-4 ${isShortlisted ? 'fill-black' : ''}`} strokeWidth={3} />
                           </button>

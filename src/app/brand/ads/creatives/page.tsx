@@ -239,52 +239,54 @@ function CreativeCard({
                             {creative.editPrompt}
                         </div>
                     )}
-                    <div className="flex items-center gap-1 flex-wrap">
-                        {creative.platforms.map((p) => (
-                            <span
-                                key={p}
-                                className="p-1 border-[1.5px] border-black bg-[#FFFDF5]"
-                                title={p}
+                    <div className="flex items-center gap-2 sm:block sm:space-y-2">
+                        <div className="flex items-center gap-1 flex-wrap">
+                            {creative.platforms.map((p) => (
+                                <span
+                                    key={p}
+                                    className="p-1 border-[1.5px] border-black bg-[#FFFDF5]"
+                                    title={p}
+                                >
+                                    {PLATFORM_ICONS[p]}
+                                </span>
+                            ))}
+                            {creative.sourceAdId && (
+                                <span className="hidden sm:inline-flex items-center gap-1 rounded-md border-[1.5px] border-black bg-[#F5F0FF] px-2 py-1 text-[10px] font-black uppercase text-black/80">
+                                    <ArrowRight className="h-3 w-3" />
+                                    Edited from previous
+                                </span>
+                            )}
+                            {creative.editTask && (
+                                <span className="hidden sm:inline-flex items-center gap-1 rounded-md border-[1.5px] border-black bg-[#ECF8D0] px-2 py-1 text-[10px] font-black uppercase text-black/80">
+                                    {creative.editTask.replace(/_/g, ' ')}
+                                </span>
+                            )}
+                            {creative.editScope && (
+                                <span className="hidden sm:inline-flex items-center gap-1 rounded-md border-[1.5px] border-black bg-[#E6F5FF] px-2 py-1 text-[10px] font-black uppercase text-black/80">
+                                    {creative.editScope.replace(/_/g, ' ')}
+                                </span>
+                            )}
+                            {creative.editModel && (
+                                <span className="hidden sm:inline-flex items-center gap-1 rounded-md border-[1.5px] border-black bg-[#FFD93D] px-2 py-1 text-[10px] font-black uppercase text-black/80">
+                                    {creative.editModel}
+                                </span>
+                            )}
+                        </div>
+                        <div className="flex items-center justify-between gap-2 flex-wrap">
+                            <QualityBadge score={creative.qualityScore} />
+                            <button
+                                type="button"
+                                onClick={(e) => {
+                                    e.stopPropagation()
+                                    onViewHistory()
+                                }}
+                                disabled={historyCount <= 1}
+                                className="hidden sm:inline-flex items-center gap-1.5 border-[2px] border-black bg-white px-2.5 py-1.5 text-[10px] font-black uppercase shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] disabled:cursor-not-allowed disabled:bg-black/10 disabled:text-black/45 disabled:shadow-none"
                             >
-                                {PLATFORM_ICONS[p]}
-                            </span>
-                        ))}
-                        {creative.sourceAdId && (
-                            <span className="hidden sm:inline-flex items-center gap-1 rounded-md border-[1.5px] border-black bg-[#F5F0FF] px-2 py-1 text-[10px] font-black uppercase text-black/80">
-                                <ArrowRight className="h-3 w-3" />
-                                Edited from previous
-                            </span>
-                        )}
-                        {creative.editTask && (
-                            <span className="hidden sm:inline-flex items-center gap-1 rounded-md border-[1.5px] border-black bg-[#ECF8D0] px-2 py-1 text-[10px] font-black uppercase text-black/80">
-                                {creative.editTask.replace(/_/g, ' ')}
-                            </span>
-                        )}
-                        {creative.editScope && (
-                            <span className="hidden sm:inline-flex items-center gap-1 rounded-md border-[1.5px] border-black bg-[#E6F5FF] px-2 py-1 text-[10px] font-black uppercase text-black/80">
-                                {creative.editScope.replace(/_/g, ' ')}
-                            </span>
-                        )}
-                        {creative.editModel && (
-                            <span className="hidden sm:inline-flex items-center gap-1 rounded-md border-[1.5px] border-black bg-[#FFD93D] px-2 py-1 text-[10px] font-black uppercase text-black/80">
-                                {creative.editModel}
-                            </span>
-                        )}
-                    </div>
-                    <div className="flex items-center justify-between gap-2 flex-wrap">
-                        <QualityBadge score={creative.qualityScore} />
-                        <button
-                            type="button"
-                            onClick={(e) => {
-                                e.stopPropagation()
-                                onViewHistory()
-                            }}
-                            disabled={historyCount <= 1}
-                            className="hidden sm:inline-flex items-center gap-1.5 border-[2px] border-black bg-white px-2.5 py-1.5 text-[10px] font-black uppercase shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] disabled:cursor-not-allowed disabled:bg-black/10 disabled:text-black/45 disabled:shadow-none"
-                        >
-                            <Clock3 className="h-3.5 w-3.5" />
-                            History
-                        </button>
+                                <Clock3 className="h-3.5 w-3.5" />
+                                History
+                            </button>
+                        </div>
                     </div>
                     <div className="grid grid-cols-2 gap-1.5 pt-0.5">
                         <button
@@ -986,7 +988,7 @@ export default function CreativesPage() {
                         variants={staggerContainer}
                         initial="initial"
                         animate="animate"
-                        className="grid grid-cols-2 gap-3 sm:grid-cols-2 sm:gap-6 lg:grid-cols-3"
+                        className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-6 lg:grid-cols-3"
                     >
                         {filteredCreatives.map((creative) => (
                             <CreativeCard

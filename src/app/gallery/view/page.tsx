@@ -133,15 +133,15 @@ function GalleryViewContent() {
                         <button
                             type="button"
                             onClick={handleBack}
-                            className="inline-flex shrink-0 items-center gap-2 rounded-2xl border border-white/15 bg-white/10 px-3 py-2 text-sm font-bold text-white transition-colors hover:bg-white/15"
+                            className="inline-flex shrink-0 items-center justify-center gap-2 rounded-2xl border border-white/15 bg-white/10 p-2.5 sm:px-3 sm:py-2 text-sm font-bold text-white transition-colors hover:bg-white/15"
                             aria-label="Back"
                         >
                             <ArrowLeft className="h-4 w-4" />
-                            Back
+                            <span className="hidden sm:inline">Back</span>
                         </button>
 
-                        <div className="min-w-0 flex-1">
-                            <p className="text-[10px] font-black uppercase tracking-[0.22em] text-white/45">Image Viewer</p>
+                        <div className="min-w-0 flex-1 px-2 sm:px-0">
+                            <p className="text-[10px] font-black uppercase tracking-[0.22em] text-white/45 truncate">Image Viewer</p>
                             <p className="truncate text-sm font-bold text-white/92 sm:text-base">
                                 {title}
                             </p>
@@ -151,17 +151,17 @@ function GalleryViewContent() {
                             type="button"
                             onClick={handleDownload}
                             disabled={downloading || !imageUrl}
-                            className="inline-flex shrink-0 items-center gap-2 rounded-2xl border border-[#FFD93D] bg-[#FFD93D] px-3 py-2 text-xs font-black uppercase tracking-[0.16em] text-black transition-colors hover:bg-[#ffe169] disabled:cursor-not-allowed disabled:opacity-60"
+                            className="inline-flex shrink-0 items-center justify-center gap-2 rounded-2xl border border-[#FFD93D] bg-[#FFD93D] p-2.5 sm:px-3 sm:py-2 text-xs font-black uppercase tracking-[0.16em] text-black transition-colors hover:bg-[#ffe169] disabled:cursor-not-allowed disabled:opacity-60"
                             aria-label="Download image"
                         >
                             <Download className="h-4 w-4" />
-                            {downloading ? 'Saving' : 'Download'}
+                            <span className="hidden sm:inline">{downloading ? 'Saving' : 'Download'}</span>
                         </button>
 
                         <button
                             type="button"
                             onClick={handleBack}
-                            className="inline-flex shrink-0 items-center justify-center rounded-2xl border border-white/15 bg-white/10 p-2.5 text-white transition-colors hover:bg-white/15"
+                            className="inline-flex shrink-0 items-center justify-center rounded-2xl border border-white/15 bg-white/10 p-2.5 text-white transition-colors hover:bg-white/15 hidden sm:inline-flex"
                             aria-label="Close viewer"
                         >
                             <X className="h-4 w-4" />
