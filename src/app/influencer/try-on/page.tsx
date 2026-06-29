@@ -23,6 +23,7 @@ import {
   Trash2,
   TrendingUp,
   Upload,
+  ShoppingBag,
 } from 'lucide-react'
 import Link from 'next/link'
 import { useProduct, useUser } from '@/lib/react-query/hooks'
@@ -978,6 +979,19 @@ function TryOnPageContent() {
             <div className="rounded-[24px] border-[3px] border-black bg-[#F9F8F4] p-5 shadow-[5px_5px_0_0_#000]">
               <div className="text-[10px] font-black uppercase tracking-[0.2em] text-black/50">Selected Target</div>
               <h3 className="mt-1 text-lg font-black uppercase">{productLoading ? 'Loading product...' : (productData?.name || 'No product selected')}</h3>
+              
+              {!productLoading && !productData && (
+                <div className="mt-4 mb-2">
+                  <Link
+                    href="/marketplace"
+                    className="inline-flex w-full items-center justify-center gap-2 rounded-[14px] border-[3px] border-black bg-[#FFD93D] px-4 py-2.5 text-xs font-black uppercase tracking-widest text-black transition-all shadow-[4px_4px_0_0_#000] hover:-translate-y-1 hover:shadow-[6px_6px_0_0_#000]"
+                  >
+                    <ShoppingBag className="h-4 w-4" />
+                    Go to Marketplace
+                  </Link>
+                </div>
+              )}
+
               {garmentIntel && (() => {
                 const cov = garmentIntel.coverage
                 const label =

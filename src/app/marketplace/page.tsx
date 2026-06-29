@@ -106,7 +106,25 @@ export default async function MarketplacePage({
   const { data: products, error: productsError } = await query
 
   if (productsError) {
-    console.error('Marketplace fetch error:', productsError)
+    console.error('Marketplace fetch error details:', {
+      message: productsError.message,
+      details: productsError.details,
+      hint: productsError.hint,
+      code: productsError.code
+    })
+    return (
+      <div className="p-8 text-red-500">
+        <h1 className="text-2xl font-bold">Failed to load marketplace products</h1>
+        <pre className="mt-4 bg-black/10 p-4 rounded text-sm overflow-auto">
+          {JSON.stringify({
+            message: productsError.message,
+            details: productsError.details,
+            hint: productsError.hint,
+            code: productsError.code
+          }, null, 2)}
+        </pre>
+      </div>
+    )
   }
 
   const categories = ['All Products', 'Clothing', 'Accessories', 'Footwear', 'Beauty', 'Lifestyle']

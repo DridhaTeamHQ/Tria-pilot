@@ -152,9 +152,26 @@ export default function MarketplaceClient({ products, categories, activeCategory
 
     const totalPages = Math.ceil(filteredProducts.length / ITEMS_PER_PAGE)
     const paginatedProducts = useMemo(() => {
-        const start = (currentPage - 1) * ITEMS_PER_PAGE
-        return filteredProducts.slice(start, start + ITEMS_PER_PAGE)
+        return filteredProducts.slice(0, currentPage * ITEMS_PER_PAGE)
     }, [filteredProducts, currentPage])
+    const observerTarget = useRef<HTMLDivElement>(null)
+
+    useEffect(() => {
+        const observer = new IntersectionObserver(
+            (entries) => {
+                if (entries[0].isIntersecting && currentPage < totalPages) {
+                    setCurrentPage((prev) => prev + 1)
+                }
+            },
+            { threshold: 0.1 }
+        )
+
+        if (observerTarget.current) {
+            observer.observe(observerTarget.current)
+        }
+
+        return () => observer.disconnect()
+    }, [currentPage, totalPages])
 
     useEffect(() => {
         if (!allowPrefetch) return
@@ -439,33 +456,9 @@ export default function MarketplaceClient({ products, categories, activeCategory
                             ))}
                         </div>
 
-                        {totalPages > 1 && (
-                            <div className="mt-12 flex flex-wrap items-center justify-center gap-4 sm:gap-6">
-                                <button
-                                    onClick={() => {
-                                        setCurrentPage(p => Math.max(1, p - 1))
-                                        window.scrollTo({ top: 0, behavior: 'smooth' })
-                                    }}
-                                    disabled={currentPage === 1}
-                                    className="rounded-xl border-[3px] border-black bg-[#FFD93D] px-4 py-2 sm:px-6 sm:py-2.5 text-xs sm:text-sm font-black uppercase tracking-widest text-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all hover:-translate-y-1 hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-gray-200 disabled:hover:translate-y-0 disabled:hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"
-                                >
-                                    Prev
-                                </button>
-                                
-                                <span className="rounded-xl border-[3px] border-black bg-white px-4 py-2 sm:px-5 sm:py-2.5 text-xs sm:text-sm font-black uppercase tracking-widest text-charcoal shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
-                                    Page {currentPage} of {totalPages}
-                                </span>
-                                
-                                <button
-                                    onClick={() => {
-                                        setCurrentPage(p => Math.min(totalPages, p + 1))
-                                        window.scrollTo({ top: 0, behavior: 'smooth' })
-                                    }}
-                                    disabled={currentPage === totalPages}
-                                    className="rounded-xl border-[3px] border-black bg-[#FFD93D] px-4 py-2 sm:px-6 sm:py-2.5 text-xs sm:text-sm font-black uppercase tracking-widest text-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all hover:-translate-y-1 hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-gray-200 disabled:hover:translate-y-0 disabled:hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"
-                                >
-                                    Next
-                                </button>
+                        {currentPage < totalPages && (
+                            <div ref={observerTarget} className="mt-12 flex justify-center py-8">
+                                <div className="h-8 w-8 animate-spin rounded-full border-[3px] border-black/20 border-t-black" />
                             </div>
                         )}
                     </>
