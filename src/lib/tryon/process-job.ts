@@ -95,6 +95,13 @@ async function fetchGenerationJob(jobId: string): Promise<ProcessGenerationJobRo
 
 async function markJobStatus(jobId: string, patch: Record<string, unknown>) {
   const service = createServiceClient()
+  if (patch.status === 'failed') {
+    const { error } = await service.from('generation_jobs').delete().eq('id', jobId)
+    if (error) {
+      throw new Error(`Failed deleting failed generation job ${jobId}: ${error.message}`)
+    }
+    return
+  }
   const { error } = await service.from('generation_jobs').update(patch).eq('id', jobId)
   if (error) {
     throw new Error(`Failed updating generation job ${jobId}: ${error.message}`)

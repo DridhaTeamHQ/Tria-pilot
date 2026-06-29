@@ -335,6 +335,10 @@ export default function GenerationsPage() {
     }
 
     const completedGenerations = generations?.filter((g: any) => g.outputImagePath) || []
+    const displayGenerations = generations?.filter((g: any) => {
+        const status = g.status?.toLowerCase() || ''
+        return status !== 'failed' && status !== 'error'
+    }) || []
     const deletingId = deleteMutation.isPending ? (deleteMutation.variables as any) : null
 
     const requestDelete = (job: any) => {
@@ -429,7 +433,7 @@ export default function GenerationsPage() {
                 </motion.div>
 
                 {/* Gallery Grid */}
-                {completedGenerations.length === 0 ? (
+                {displayGenerations.length === 0 ? (
                     <motion.div
                         initial={{ opacity: 0, y: 30 }}
                         animate={{ opacity: 1, y: 0 }}
@@ -464,7 +468,7 @@ export default function GenerationsPage() {
                         animate="visible"
                         className="grid grid-cols-1 min-[520px]:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6"
                     >
-                        {generations?.map((job: any) => (
+                        {displayGenerations.map((job: any) => (
                             <motion.div
                                 key={job.id}
                                 variants={cardVariants}

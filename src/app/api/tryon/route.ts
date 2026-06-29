@@ -148,10 +148,7 @@ async function findRecentActiveTryOnJob(service: ServiceClient, userId: string) 
       console.warn(`[tryon] auto-expiring stale job ${job.id} (idle ${Math.round(ageMs / 1000)}s)`)
       await service
         .from('generation_jobs')
-        .update({
-          status: 'failed',
-          error_message: 'Job timed out — auto-expired by stale-lock recovery.',
-        })
+        .delete()
         .eq('id', job.id)
         .in('status', ['pending', 'processing']) // guard against race
       return null
@@ -1013,7 +1010,7 @@ async function handlePresetlessTryOnRequest(params: {
       if (waitingCount >= MAX_QUEUE_DEPTH) {
         await service
           .from('generation_jobs')
-          .update({ status: 'failed', error_message: 'Queue full — rejected before enqueue.' })
+          .delete()
           .eq('id', job.id)
         return NextResponse.json(
           {
@@ -1049,10 +1046,7 @@ async function handlePresetlessTryOnRequest(params: {
       console.error('[tryon] failed to enqueue presetless generation job:', queueError)
       await service
         .from('generation_jobs')
-        .update({
-          status: 'failed',
-          error_message: 'Failed to queue generation job.',
-        })
+        .delete()
         .eq('id', job.id)
       return jsonError(500, 'QUEUE_ENQUEUE_FAILED', 'Failed to queue generation job. Please try again.')
     }
@@ -1082,10 +1076,7 @@ async function handlePresetlessTryOnRequest(params: {
           redisGlobalAcquired = false
           await service
             .from('generation_jobs')
-            .update({
-              status: 'failed',
-              error_message: 'Server busy, please wait and retry.',
-            })
+            .delete()
             .eq('id', job.id)
           return NextResponse.json(
             {
