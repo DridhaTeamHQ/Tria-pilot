@@ -173,7 +173,7 @@ export function inferIntelFromText(text: string | null | undefined): GarmentInte
         coverage: m.coverage,
         description: m.desc + (foundColor ? ` in ${foundColor}` : ''),
         primaryColor: foundColor || FALLBACK_INTEL.primaryColor,
-        pattern: foundPattern,
+        pattern: foundPattern || '',
         material: foundMaterial,
       }
     }
