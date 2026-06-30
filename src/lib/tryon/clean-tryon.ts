@@ -36,10 +36,8 @@ import { preprocessGarmentImage } from '@/lib/tryon/garment-preprocessor'
 import { orchestrateTryOn, type PhotoCandidate } from '@/lib/tryon/gpt-orchestrator'
 import { analyzeGarment } from '@/lib/tryon/garment-intel'
 import { buildGarmentEnforcementBlock } from '@/lib/tryon/garment-strict-schema'
-// PURE FLUX clothing swap. Gemini's prepaid billing is depleted (every Gemini
-// call 429s "prepayment credits are depleted"), FLUX is funded — so the swap
-// runs entirely on FLUX-2 [pro] with NO Gemini anywhere in the path.
-import { flux2Generate, downloadFluxImage } from '@/lib/flux/client'
+// Switched to use Gemini via generateTryOnDirect per user request
+import { generateTryOnDirect } from '@/lib/nanobanana'
 import { getOpenAI } from '@/lib/openai'
 import {
   assessIdentityAndComposition,
@@ -234,11 +232,11 @@ function buildLogoPreservationLock(
 ): string {
   const strictLogo = strictProfile?.logo_mark?.exists
     ? [
-        `${strictProfile.logo_mark.description}`,
-        `placement=${strictProfile.logo_mark.placement}`,
-        `color=${strictProfile.logo_mark.color}`,
-        `size=${strictProfile.logo_mark.size}`,
-      ].join('; ')
+      `${strictProfile.logo_mark.description}`,
+      `placement=${strictProfile.logo_mark.placement}`,
+      `color=${strictProfile.logo_mark.color}`,
+      `size=${strictProfile.logo_mark.size}`,
+    ].join('; ')
     : ''
 
   // Match only genuine brand/emblem marks. Deliberately NOT matching broad
@@ -304,12 +302,12 @@ function getExpectedFitDescription(
 ): string {
   const strictFit = strictProfile
     ? [
-        `type=${strictProfile.garment_type}`,
-        `neckline=${strictProfile.construction.neckline}`,
-        `sleeves=${strictProfile.construction.sleeves.length} ${strictProfile.construction.sleeves.style}`,
-        `length=${strictProfile.construction.length}`,
-        `drape=${strictProfile.fabric.drape}`,
-      ].join('; ')
+      `type=${strictProfile.garment_type}`,
+      `neckline=${strictProfile.construction.neckline}`,
+      `sleeves=${strictProfile.construction.sleeves.length} ${strictProfile.construction.sleeves.style}`,
+      `length=${strictProfile.construction.length}`,
+      `drape=${strictProfile.fabric.drape}`,
+    ].join('; ')
     : ''
 
   const intelFit = [
@@ -329,7 +327,7 @@ function buildSwapRegionLock(
 ): string {
   switch (intel?.coverage) {
     case 'upper_only':
-      return 'UPPER-BODY SWAP ONLY: replace only the sold upper-body garment. Keep the person\'s original pants, jeans, shorts, skirt, belt, shoes, socks, watch, bracelets, and leg silhouette exactly as they are in image 1. Do not import bottom-wear styling from the product photo.'
+      return 'UPPER-BODY SWAP ONLY: replace only the sold upper-body garment. Keep the person\'s original pants, jeans, shorts, skirt, belt, shoes, socks, watch, bracelets, and leg silhouette exactly as they are in image 1. Do not import bottom-wear styling from the product photo. CRITICAL: If the new garment is shorter than the original, DO NOT stretch it—generate appropriate pants to fill the exposed lower body.'
     case 'lower_only':
       return 'LOWER-BODY SWAP ONLY: replace only the sold lower-body garment. Keep the person\'s original top, jacket, shirt layers, hairstyle, face, arms, and upper-body silhouette exactly as they are in image 1. Do not import top styling from the product photo.'
     case 'layered':
@@ -417,7 +415,7 @@ export async function runCleanTryOn(input: CleanTryOnInput): Promise<CleanTryOnR
   const shuffledPool = [...input.candidatePhotos]
   for (let i = shuffledPool.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1))
-    ;[shuffledPool[i], shuffledPool[j]] = [shuffledPool[j], shuffledPool[i]]
+      ;[shuffledPool[i], shuffledPool[j]] = [shuffledPool[j], shuffledPool[i]]
   }
   // Window: if the pool is large, only show a random 5 so picks rotate.
   // 5 still gives the orchestrator real choice while forcing variety.
@@ -470,7 +468,7 @@ export async function runCleanTryOn(input: CleanTryOnInput): Promise<CleanTryOnR
     if (fallbackPhotos.length < 3) {
       throw new Error('Not enough reference photos to generate a try-on (need 3).')
     }
-      orchestrated = {
+    orchestrated = {
       garmentSummary: desc,
       durationMs: 0,
       selections: fallbackPhotos.map((p) => ({
@@ -622,6 +620,7 @@ export async function runCleanTryOn(input: CleanTryOnInput): Promise<CleanTryOnR
 
     // Orchestrator's "change X to Y, keep Z" prompt + identity/fidelity guards.
     const fluxPrompt = (
+      `CRITICAL STRICT RULE: You MUST REPLACE the person's clothing in Image 1 with the exact garment shown in Image 2. DO NOT output the person wearing their original clothes! ` +
       `${sel.prompt} ` +
       `This is a clothing swap only, not a restyle, retouch, or portrait regeneration. ` +
       `Keep the person's face, eyes, eyebrows, nose, lips, jawline, facial hair, hairstyle, skin tone, ears, earrings, glasses, watch, bracelets, body proportions, and expression identical to image 1; ` +
@@ -655,17 +654,7 @@ export async function runCleanTryOn(input: CleanTryOnInput): Promise<CleanTryOnR
     // FLUX is the ONLY engine. No Gemini fallback (Gemini billing depleted).
     // The BFL key pool spreads parallel slots across funded keys and skips
     // depleted (402) keys via cooldown.
-    const dims = await detectDims(personBase64)
     const seed = (Date.now() % 1_000_000_000) + idx * 9973
-    // person, garment, [face crop], person. Face crop = identity anchor.
-    const fluxInputs = hasFace
-      ? [
-          personBase64,
-          cleanedGarment,
-          faceCropBase64!.replace(/^data:image\/[a-z+]+;base64,/, ''),
-          personBase64,
-        ]
-      : [personBase64, cleanedGarment, personBase64]
 
     const MAX_ATTEMPTS = Math.max(1, Number(process.env.TRYON_SLOT_MAX_ATTEMPTS) || 2)
     let lastErr = 'unknown error'
@@ -679,20 +668,20 @@ export async function runCleanTryOn(input: CleanTryOnInput): Promise<CleanTryOnR
       try {
         if (isDev) console.log(`🎨 [clean] Slot ${idx + 1} → FLUX-2 [pro]${attempt > 1 ? ` (retry ${attempt})` : ''} [${fluxCallsUsed + 1}/${MAX_FLUX_CALLS}]`)
         fluxCallsUsed++
-        const result = await flux2Generate({
+        let outputBase64 = await generateTryOnDirect({
+          personImageBase64: personBase64,
+          garmentImageBase64: cleanedGarment,
+          faceCropBase64: hasFace ? faceCropBase64 : undefined,
           prompt: fluxPrompt,
-          inputImages: fluxInputs,
-          width: dims.width,
-          height: dims.height,
-          outputFormat: 'png',
-          safetyTolerance: 5,
-          timeoutMs: 90_000,
-          model: 'flux-2-pro',
+          aspectRatio: input.aspectRatio || '4:5',
+          garmentIntel: intel,
+          strictGarmentProfile: strictProfile,
           seed: seed + attempt,
+          useExplicitPrompt: true,
+          engineOverride: 'gemini'
         })
-        const downloaded = await downloadFluxImage(result.imageUrl)
-        let outputBase64 = `data:${downloaded.mime};base64,${downloaded.base64}`
-        if (isDev) console.log(`✅ [clean] Slot ${idx + 1} FLUX done in ${Date.now() - slotStart}ms (job ${result.jobId.slice(0, 8)})`)
+        const result = { jobId: 'gemini-' + Date.now(), seed: seed + attempt }
+        if (isDev) console.log(`✅ [clean] Slot ${idx + 1} Gemini done in ${Date.now() - slotStart}ms (job ${result.jobId.slice(0, 8)})`)
 
         // ── OPTIONAL FACE-IDENTITY RESTORATION ────────────────────────────
         // InsightFace inswapper_128 embedding-level face swap using the
@@ -761,31 +750,25 @@ export async function runCleanTryOn(input: CleanTryOnInput): Promise<CleanTryOnR
           colorDescription: expectedColorDescription,
         })
         const sanitizedPrompt = (
+          `CRITICAL STRICT RULE: You MUST REPLACE the person's clothing in Image 1 with the exact garment shown in Image 2. ` +
           `Dress the person in image 1 in ${generic}. ` +
-          (hasFace ? `Image 2 is a close-up of this exact person's face — keep the output face identical to it. ` : '') +
           `Keep the person's face, hair, skin tone, body, pose, hands, background, camera angle, framing, crop and lighting EXACTLY as image 1 — only the clothing changes. ` +
           `Render the print/graphic clearly across the chest with natural fabric folds and screen-print texture. ` +
           `Photorealistic, no overlay or sticker effect.`
         ).slice(0, 2000)
-        const dims2 = await detectDims(personBase64)
-        // NO garment image — only the person (+ face crop). That is what dodges
-        // the input-image moderation filter.
-        const recoveryInputs = hasFace
-          ? [personBase64, faceCropBase64!.replace(/^data:image\/[a-z+]+;base64,/, '')]
-          : [personBase64]
-        const result = await flux2Generate({
+        const outputBase64 = await generateTryOnDirect({
+          personImageBase64: personBase64,
+          garmentImageBase64: cleanedGarment,
+          faceCropBase64: hasFace ? faceCropBase64 : undefined,
           prompt: sanitizedPrompt,
-          inputImages: recoveryInputs,
-          width: dims2.width,
-          height: dims2.height,
-          outputFormat: 'png',
-          safetyTolerance: 5,
-          timeoutMs: 90_000,
-          model: 'flux-2-pro',
+          aspectRatio: input.aspectRatio || '4:5',
+          garmentIntel: intel,
+          strictGarmentProfile: strictProfile,
           seed: (Date.now() % 1_000_000_000) + idx * 7919,
+          useExplicitPrompt: true,
+          engineOverride: 'gemini'
         })
-        const downloaded = await downloadFluxImage(result.imageUrl)
-        const outputBase64 = `data:${downloaded.mime};base64,${downloaded.base64}`
+        const result = { jobId: 'gemini-rec-' + Date.now(), seed: (Date.now() % 1_000_000_000) + idx * 7919 }
         const identityAssessment = await validateIdentity(outputBase64)
         if (isDev) console.log(`✅ [clean] Slot ${idx + 1} recovered via sanitized FLUX in ${Date.now() - slotStart}ms`)
         return {
