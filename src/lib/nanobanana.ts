@@ -500,6 +500,7 @@ function buildGeminiSwapScope(
         replacementBlock: `GARMENT REPLACEMENT (UPPER-BODY ONLY):
 - Change ONLY the upper-body garment region
 - Keep the original pants, jeans, shorts, skirt, shoes, socks, accessories, and lower-body styling from Image 1
+- CRITICAL LENGTH RULE: The new garment MUST have the exact same length and hemline as Image 2. If the original garment was long (e.g. a kurta/dress) and the new garment is short (e.g. a t-shirt), DO NOT stretch the new garment. Generate appropriate pants/jeans to cover the newly exposed lower body.
 - Do NOT import companion bottom wear from the product/model photo
 - The output must still look like the same real person in the same original outfit, except wearing the new upper-body garment`,
       }
@@ -711,6 +712,8 @@ export async function generateTryOnDirect(options: DirectTryOnOptions): Promise<
   const config: GenerateContentConfig = {
     responseModalities: ['TEXT', 'IMAGE'],
     systemInstruction: `You are a photorealistic virtual try-on editor. Output ONLY an edited image — no text.
+
+CRITICAL STRICT RULE: YOU MUST REPLACE THE CLOTHING ON THE PERSON WITH THE TARGET GARMENT FROM IMAGE 2. IF THE CLOTHING DOES NOT CHANGE, YOU HAVE FAILED.
 
 ${swapScope.taskLine}
 

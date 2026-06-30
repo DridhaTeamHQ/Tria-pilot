@@ -140,11 +140,11 @@ export function inferIntelFromText(text: string | null | undefined): GarmentInte
     { test: /\b(jumpsuit|romper|playsuit)\b/, type: 'jumpsuit', coverage: 'full_body', desc: 'A jumpsuit' },
     { test: /\b(dress|gown|frock|kurta|kurti|abaya)\b/, type: 'dress', coverage: 'full_body', desc: 'A dress' },
     { test: /\b(suit)\b/, type: 'suit', coverage: 'full_body', desc: 'A suit' },
-    { test: /\b(jeans|trouser|pant|chino|jogger|legging|cargo)\b/, type: 'pants', coverage: 'lower_only', desc: 'Pants/trousers' },
+    { test: /\b(jeans|trouser|pants?|chino|jogger|legging|cargo)\b/, type: 'pants', coverage: 'lower_only', desc: 'Pants/trousers' },
     { test: /\b(skirt|midi)\b/, type: 'skirt', coverage: 'lower_only', desc: 'A skirt' },
-    { test: /\b(short|bermuda)\b/, type: 'pants', coverage: 'lower_only', desc: 'Shorts' },
-    { test: /\b(jacket|coat|blazer|cardigan|hoodie|outerwear|trucker)\b/, type: 'outerwear', coverage: 'layered', desc: 'Outerwear' },
+    { test: /\b(shorts|bermudas|bermuda)\b/, type: 'pants', coverage: 'lower_only', desc: 'Shorts' },
     { test: /\b(shirt|t.?shirt|tee|blouse|top|tank|crop)\b/, type: 'top', coverage: 'upper_only', desc: 'A top' },
+    { test: /\b(jacket|coat|blazer|cardigan|hoodie|outerwear|trucker)\b/, type: 'outerwear', coverage: 'layered', desc: 'Outerwear' },
   ]
 
   for (const m of map) {
@@ -159,8 +159,9 @@ export function inferIntelFromText(text: string | null | undefined): GarmentInte
       const foundColor = colorWords.find((c) => new RegExp(`\\b${c}\\b`).test(t))
 
       // Pattern keywords
-      const patterns = ['floral', 'striped', 'plaid', 'checkered', 'printed', 'solid', 'paisley']
-      const foundPattern = patterns.find((p) => new RegExp(`\\b${p}\\b`).test(t)) || 'solid'
+      const patterns = ['floral', 'striped', 'plaid', 'checkered', 'printed', 'solid', 'paisley', 'graphic', 'logo', 'print']
+      let foundPattern = patterns.find((p) => new RegExp(`\\b${p}\\b`).test(t)) || undefined
+      if (foundPattern && ['graphic', 'logo', 'print'].includes(foundPattern)) foundPattern = 'printed'
 
       // Material keywords
       const materials = ['cotton', 'silk', 'denim', 'linen', 'wool', 'polyester', 'velvet', 'satin', 'leather']
